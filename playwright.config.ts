@@ -18,12 +18,23 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: {
-    command: `npx ng serve --port ${app_port}`,
-    url: `http://localhost:${app_port}`,
-    reuseExistingServer: false,
-    timeout: 180_000,
-  },
+  globalSetup: './e2e/global_setup.ts',
+  webServer: [
+    {
+      command: `npx ng serve --port ${app_port}`,
+      url: `http://localhost:${app_port}`,
+      reuseExistingServer: false,
+      timeout: 180_000,
+    },
+    {
+      // The Auth emulator is shared by concurrent runs (its port is fixed in firebase.json and in
+      // environment.ts); the suite only reads the seeded user from it, so sharing is safe.
+      command: 'npx -y firebase-tools@15 emulators:start --only auth --project demo-assignr-helper',
+      url: 'http://localhost:9099',
+      reuseExistingServer: true,
+      timeout: 180_000,
+    },
+  ],
   projects: [
     {
       name: 'desktop-standard',

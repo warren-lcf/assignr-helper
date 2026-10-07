@@ -16,7 +16,9 @@
     "functions:build": "npm --prefix functions run build",
     "functions:test": "npm --prefix functions run test",
     "e2e": "playwright test",
-    "emulators": "firebase emulators:start --project demo-assignr-helper"
+    "emulators": "firebase emulators:start --only auth --project demo-assignr-helper",
+    "seed:auth": "node scripts/seed_auth_user.cjs",
+    "spanner:provision": "node functions/scripts/provision_spanner_emulator.mjs"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
