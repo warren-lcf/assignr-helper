@@ -1,0 +1,92 @@
+# Production deploys happen only through this pipeline, triggered by merges to main.
+# Gate order: install, lint, typecheck, unit tests, build, e2e (emulators), migrate, deploy.
+# Any failing step halts the pipeline. Unverified until the first real run.
+options:
+  machineType: E2_HIGHCPU_32
+  logging: CLOUD_LOGGING_ONLY
+timeout: 3600s
+serviceAccount: projects/assignr-helper-prod/serviceAccounts/assignr-helper-deployer@assignr-helper-prod.iam.gserviceaccount.com
+
+steps:
+  - id: registry-auth
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        printf '//us-east4-npm.pkg.dev/hamble-creek-holdings/hch-shared-libraries/:_authToken=%s\nalways-auth=true\n' "$(gcloud auth print-access-token)" > /workspace/.npmrc.user
+
+  - id: install
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npm install -g npm@11.17.0
+        export NPM_CONFIG_USERCONFIG=/workspace/.npmrc.user
+        npm ci
+        npm --prefix functions ci
+
+  - id: lint
+    name: node:22
+    entrypoint: npm
+    args: ['run', 'lint']
+    waitFor: ['install']
+
+  - id: typecheck
+    name: node:22
+    entrypoint: bash
+    args: ['-c', 'npm run typecheck && npm --prefix functions run typecheck']
+    waitFor: ['install']
+
+  - id: unit-tests
+    name: node:22
+    entrypoint: bash
+    args: ['-c', 'npm test && npm --prefix functions test']
+    waitFor: ['lint', 'typecheck']
+
+  - id: build
+    name: node:22
+    entrypoint: bash
+    args: ['-c', 'npm run build && npm --prefix functions run build']
+    waitFor: ['unit-tests']
+
+  - id: spanner-emulator
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - docker run -d --name spanner-emulator --network cloudbuild -p 9010:9010 -p 9020:9020 gcr.io/cloud-spanner-emulator/emulator
+    waitFor: ['build']
+
+  - id: e2e
+    name: mcr.microsoft.com/playwright:v1.63.0-noble
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        export SPANNER_EMULATOR_HOST=spanner-emulator:9010
+        npx playwright test
+    waitFor: ['spanner-emulator']
+
+  - id: migrate
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        export CONFIRM_PRODUCTION_MIGRATION=true
+        export SPANNER_PROJECT_ID=hamble-creek-holdings
+        export SPANNER_INSTANCE_ID=shared
+        export SPANNER_DATABASE_ID=assignr-helper
+        node functions/lib/migrations/migrate.js
+    waitFor: ['e2e']
+
+  - id: deploy
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npx -y firebase-tools@15 deploy --only hosting,functions,firestore:rules --project assignr-helper-prod --non-interactive
+    waitFor: ['migrate']

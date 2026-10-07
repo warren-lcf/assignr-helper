@@ -1,0 +1,33 @@
+{
+  "name": "assignr-helper-functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "node lib/migrations/migrate.js",
+    "docs": "typedoc --options typedoc.json"
+  },
+  "dependencies": {
+    "@google-cloud/spanner": "^9.0.0",
+    "express": "^5.2.1",
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.3.1",
+    "typedoc": "^0.28.20",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.3"
+  }
+}

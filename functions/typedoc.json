@@ -1,0 +1,8 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.json",
+  "out": "../documentation/generated/functions",
+  "exclude": ["src/**/*.spec.ts"],
+  "excludePrivate": true
+}
