@@ -1,5 +1,6 @@
 import type { Express } from 'express';
 import { create_app } from './app.js';
+import { create_connections_admin_router } from './connections/connections_admin.routes.js';
 import { create_connections_router } from './connections/connections.routes.js';
 import { create_production_context } from './production_context.js';
 import { create_sync_router } from './sync/sync.routes.js';
@@ -19,6 +20,13 @@ export function create_production_app(env: NodeJS.ProcessEnv = process.env): Exp
       app.use(
         '/api',
         create_connections_router(context.connections, context.auth.permission_service),
+      );
+      app.use(
+        '/api',
+        create_connections_admin_router({
+          admin_service: context.admin_service,
+          permission_service: context.auth.permission_service,
+        }),
       );
       app.use(
         '/api',

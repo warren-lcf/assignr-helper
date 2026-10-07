@@ -1,15 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import { Spanner } from '@google-cloud/spanner';
 import { create_role_permission_service } from '@hch-shared-libraries/core-server';
+import {
+  create_audit_log_service,
+  create_spanner_audit_log_store,
+} from '@hch-shared-libraries/core-server/audit';
+import type { ICommonSpannerDatabase } from '@hch-shared-libraries/core-server';
+import { create_google_secret_manager_client } from '@hch-shared-libraries/core-server/secrets';
 import { create_auth_middleware } from './auth/create_auth_middleware.js';
 import { FirebaseTokenVerifier } from './auth/firebase_token_verifier.js';
 import { IAppAuth } from './auth/models/app_auth.model.js';
 import { SpannerMembershipResolver } from './auth/spanner_membership_resolver.js';
 import { StaticRoleStore } from './auth/static_role_store.js';
 import { require_env } from './config/require_env.js';
-import { NotConfiguredAccessTokenSource } from './connections/not_configured_access_token_source.js';
+import { ClientCredentialsTokenSource } from './connections/client_credentials_token_source.js';
+import { ConnectionAdminService } from './connections/connection_admin.service.js';
+import { SecretManagerCredentialVault } from './connections/secret_manager_credential_vault.js';
 import { IConnectionStore } from './connections/ports/connection_store.interface.js';
 import { SpannerConnectionStore } from './connections/stores/spanner_connection_store.js';
+import { AssignrAccountVerifier } from './integrations/assignr/assignr_account_verifier.js';
+import { AssignrTokenClient } from './integrations/assignr/assignr_token_client.js';
 import { AssignrSessionFactory } from './sync/assignr_session_factory.js';
 import { ConnectionSyncService } from './sync/connection_sync.service.js';
 import { ISyncRunStore } from './sync/ports/sync_run_store.interface.js';
@@ -24,6 +34,7 @@ export interface IProductionContext {
   connections: IConnectionStore;
   sync_runs: ISyncRunStore;
   sync_service: ConnectionSyncService;
+  admin_service: ConnectionAdminService;
 }
 
 /**
@@ -31,8 +42,9 @@ export interface IProductionContext {
  * the fixed role set, and the Assignr session factory. Reads the Spanner
  * location from the environment and throws when any of it is missing.
  *
- * Provider credentials are not configured yet (the OAuth connect flow is not
- * built), so syncing a connection fails clearly as "needs to be reconnected".
+ * Each tenant's provider client credentials live in Secret Manager (one secret
+ * per connection, written through the settings API); access tokens are requested
+ * on demand and cached only in memory.
  * @param env Environment to read; defaults to `process.env`.
  * @returns The wired services.
  */
@@ -48,6 +60,18 @@ export function create_production_context(
   const connections = new SpannerConnectionStore(database);
   const sync_runs = new SpannerSyncRunStore(database);
 
+  const secrets = create_google_secret_manager_client({
+    project_id: require_env('SECRET_MANAGER_PROJECT_ID', env),
+  });
+  const vault = new SecretManagerCredentialVault(secrets);
+  const token_client = new AssignrTokenClient();
+  const token_source = new ClientCredentialsTokenSource({ vault, token_client });
+  const audit = create_audit_log_service({
+    store: create_spanner_audit_log_store({
+      database: database as unknown as ICommonSpannerDatabase,
+    }),
+  });
+
   return {
     auth: {
       permission_service,
@@ -61,13 +85,22 @@ export function create_production_context(
     sync_runs,
     sync_service: new ConnectionSyncService({
       connections,
-      sessions: new AssignrSessionFactory({ token_source: new NotConfiguredAccessTokenSource() }),
+      sessions: new AssignrSessionFactory({ token_source }),
       stores: {
         games: new SpannerGameStore(database),
         organizations: new SpannerOrganizationStore(database),
         venues: new SpannerVenueStore(database),
         runs: sync_runs,
       },
+      now: Date.now,
+      generate_id: randomUUID,
+    }),
+    admin_service: new ConnectionAdminService({
+      connections,
+      vault,
+      verifier: new AssignrAccountVerifier({ token_client }),
+      token_invalidator: token_source,
+      audit,
       now: Date.now,
       generate_id: randomUUID,
     }),

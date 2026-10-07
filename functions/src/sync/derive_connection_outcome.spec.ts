@@ -51,7 +51,7 @@ describe('derive_connection_outcome', () => {
     expect(derive_connection_outcome([], 1)).toBeNull();
   });
 
-  it.each(['AssignrAuthError', 'ConnectionNotAuthorizedError'])(
+  it.each(['AssignrAuthError', 'AssignrCredentialsRejectedError', 'ConnectionNotAuthorizedError'])(
     'flags the connection when a run failed with %s',
     (name) => {
       const outcome = derive_connection_outcome(
