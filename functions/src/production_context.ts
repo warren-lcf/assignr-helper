@@ -19,6 +19,10 @@ import { ConnectionAdminService } from './connections/connection_admin.service.j
 import { SecretManagerCredentialVault } from './connections/secret_manager_credential_vault.js';
 import { IConnectionStore } from './connections/ports/connection_store.interface.js';
 import { SpannerConnectionStore } from './connections/stores/spanner_connection_store.js';
+import { PublicQuickLinkService } from './quick_links/public_quick_link.service.js';
+import { IQuickLinkStore } from './quick_links/ports/quick_link_store.interface.js';
+import { QuickLinkService } from './quick_links/quick_link.service.js';
+import { SpannerQuickLinkStore } from './quick_links/stores/spanner_quick_link_store.js';
 import { AssignrAccountVerifier } from './integrations/assignr/assignr_account_verifier.js';
 import { AssignrTokenClient } from './integrations/assignr/assignr_token_client.js';
 import { AssignrSessionFactory } from './sync/assignr_session_factory.js';
@@ -37,6 +41,9 @@ export interface IProductionContext {
   sync_service: ConnectionSyncService;
   games_service: GamesListService;
   admin_service: ConnectionAdminService;
+  quick_links: IQuickLinkStore;
+  quick_link_service: QuickLinkService;
+  public_quick_link_service: PublicQuickLinkService;
 }
 
 /**
@@ -64,6 +71,7 @@ export function create_production_context(
   const games = new SpannerGameStore(database);
   const organizations = new SpannerOrganizationStore(database);
   const venues = new SpannerVenueStore(database);
+  const quick_links = new SpannerQuickLinkStore(database);
 
   const secrets = create_google_secret_manager_client({
     project_id: require_env('SECRET_MANAGER_PROJECT_ID', env),
@@ -104,6 +112,19 @@ export function create_production_context(
       audit,
       now: Date.now,
       generate_id: randomUUID,
+    }),
+    quick_links,
+    quick_link_service: new QuickLinkService({
+      quick_links,
+      audit,
+      now: Date.now,
+      generate_id: randomUUID,
+    }),
+    public_quick_link_service: new PublicQuickLinkService({
+      quick_links,
+      games,
+      venues,
+      now: Date.now,
     }),
   };
 }
