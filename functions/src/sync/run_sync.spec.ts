@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { INormalizedOrganization } from '../integrations/models/normalized_organization.model.js';
 import { AssignrApiError } from '../integrations/assignr/errors/assignr_api_error.js';
 import { AssignmentResponseStatus } from '../integrations/enums/assignment_response_status.enum.js';
 import { SyncKind } from './enums/sync_kind.enum.js';
@@ -8,7 +9,7 @@ import { make_normalized_game } from './make_normalized_game.fixture.js';
 import { make_sync_harness, make_sync_request } from './make_sync_harness.fixture.js';
 import { run_sync } from './run_sync.js';
 
-const organizations = [
+const organizations: INormalizedOrganization[] = [
   { external_id: '101', name: 'Metro Youth Soccer Assignor', flags: { show_all_games: true } },
   { external_id: '202', name: 'County Rec League', flags: {} },
 ];

@@ -59,6 +59,30 @@ steps:
       - docker run -d --name spanner-emulator --network cloudbuild -p 9010:9010 -p 9020:9020 gcr.io/cloud-spanner-emulator/emulator
     waitFor: ['build']
 
+  - id: spanner-provision
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        export SPANNER_EMULATOR_HOST=spanner-emulator:9010
+        export SPANNER_PROJECT_ID=assignr-helper-local SPANNER_INSTANCE_ID=local SPANNER_DATABASE_ID=assignr-helper
+        for attempt in $(seq 1 30); do (echo > /dev/tcp/spanner-emulator/9010) 2>/dev/null && break; sleep 2; done
+        node functions/scripts/provision_spanner_emulator.mjs
+        node functions/lib/migrations/migrate.js
+    waitFor: ['spanner-emulator']
+
+  - id: spanner-contract-tests
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        export SPANNER_EMULATOR_HOST=spanner-emulator:9010
+        export SPANNER_PROJECT_ID=assignr-helper-local SPANNER_INSTANCE_ID=local SPANNER_DATABASE_ID=assignr-helper
+        npm --prefix functions test -- src/sync/stores
+    waitFor: ['spanner-provision']
+
   - id: e2e
     name: mcr.microsoft.com/playwright:v1.63.0-noble
     entrypoint: bash
@@ -67,7 +91,7 @@ steps:
       - |
         export SPANNER_EMULATOR_HOST=spanner-emulator:9010
         npx playwright test
-    waitFor: ['spanner-emulator']
+    waitFor: ['spanner-contract-tests']
 
   - id: migrate
     name: node:22
