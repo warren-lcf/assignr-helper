@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { AssignmentResponseStatus } from '../../../integrations/enums/assignment_response_status.enum.js';
 import { GameStatus } from '../../../integrations/enums/game_status.enum.js';
+import { GameListScope } from '../../enums/game_list_scope.enum.js';
 import { SyncKind } from '../../enums/sync_kind.enum.js';
+import { IGameListQuery } from '../../models/game_list_query.model.js';
 import { IStoredGame } from '../../models/stored_game.model.js';
 import { IUnseenGamesQuery } from '../../models/unseen_games_query.model.js';
 import { IGameStore } from '../../ports/game_store.interface.js';
@@ -551,6 +553,146 @@ export function describe_game_store_contract(label: string, make: () => IGameSto
         found!.slots.length = 0;
 
         const [again] = await store.find_unseen(make_query(tenant_id));
+        expect(again?.fingerprint).toBe('fp');
+        expect(again?.slots).toHaveLength(1);
+      });
+    });
+
+    describe('list_games', () => {
+      /**
+       * Builds a display-listing query for a tenant.
+       * @param tenant_id Owning tenant.
+       * @param overrides Fields to replace.
+       * @returns The query.
+       */
+      const make_list_query = (
+        tenant_id: string,
+        overrides: Partial<IGameListQuery> = {},
+      ): IGameListQuery => ({
+        tenant_id,
+        window_start: 0,
+        window_end: 5000,
+        scope: GameListScope.ALL,
+        ...overrides,
+      });
+
+      it('selects open games for OPEN, my games for MINE and either for ALL', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([
+          make_contract_game(tenant_id, 'open', { is_open: true, is_mine: false, start_at: 1 }),
+          make_contract_game(tenant_id, 'mine', { is_open: false, is_mine: true, start_at: 2 }),
+          make_contract_game(tenant_id, 'both', { is_open: true, is_mine: true, start_at: 3 }),
+          make_contract_game(tenant_id, 'neither', { is_open: false, is_mine: false, start_at: 4 }),
+        ]);
+
+        const open = await store.list_games(
+          make_list_query(tenant_id, { scope: GameListScope.OPEN }),
+        );
+        const mine = await store.list_games(
+          make_list_query(tenant_id, { scope: GameListScope.MINE }),
+        );
+        const all = await store.list_games(
+          make_list_query(tenant_id, { scope: GameListScope.ALL }),
+        );
+
+        expect(ids_of(open)).toEqual(['open', 'both']);
+        expect(ids_of(mine)).toEqual(['mine', 'both']);
+        expect(ids_of(all)).toEqual(['open', 'mine', 'both']);
+      });
+
+      it('never returns removed games', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([
+          make_contract_game(tenant_id, 'live', { start_at: 1 }),
+          make_contract_game(tenant_id, 'gone', { start_at: 2, removed_at: 1786239999000 }),
+        ]);
+
+        const found = await store.list_games(make_list_query(tenant_id));
+
+        expect(ids_of(found)).toEqual(['live']);
+      });
+
+      it('includes both window boundaries and excludes games outside the window', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        const base = 1786234975000;
+        await store.save_games([
+          make_contract_game(tenant_id, 'before', { start_at: base - 1 }),
+          make_contract_game(tenant_id, 'at_start', { start_at: base }),
+          make_contract_game(tenant_id, 'at_end', { start_at: base + 86400000 }),
+          make_contract_game(tenant_id, 'after', { start_at: base + 86400001 }),
+        ]);
+
+        const found = await store.list_games(
+          make_list_query(tenant_id, { window_start: base, window_end: base + 86400000 }),
+        );
+
+        expect(ids_of(found)).toEqual(['at_start', 'at_end']);
+      });
+
+      it('spans every connection of the tenant and never another tenant', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        const other_tenant_id = make_contract_tenant_id();
+        await store.save_games([
+          make_contract_game(tenant_id, 'c1-game', { connection_id: 'c1', start_at: 1 }),
+          make_contract_game(tenant_id, 'c2-game', { connection_id: 'c2', start_at: 2 }),
+          make_contract_game(other_tenant_id, 'other', { start_at: 3 }),
+        ]);
+
+        const found = await store.list_games(make_list_query(tenant_id));
+
+        expect(ids_of(found)).toEqual(['c1-game', 'c2-game']);
+      });
+
+      it('sorts by start_at then game_id', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([
+          make_contract_game(tenant_id, 'z', { start_at: 100 }),
+          make_contract_game(tenant_id, 'b', { start_at: 300 }),
+          make_contract_game(tenant_id, 'a', { start_at: 300 }),
+          make_contract_game(tenant_id, 'm', { start_at: 200 }),
+        ]);
+
+        const found = await store.list_games(make_list_query(tenant_id));
+
+        expect(ids_of(found)).toEqual(['z', 'm', 'a', 'b']);
+      });
+
+      it('returns complete games with their slots attached', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        const game = make_contract_game(tenant_id, 'g1', {
+          venue_id: 'venue-1',
+          raw: { deep: { list: [1, 2] } },
+        });
+        await store.save_games([game, make_contract_game(tenant_id, 'g2', { slots: [] })]);
+
+        const found = await store.list_games(make_list_query(tenant_id));
+
+        expect(found.find((item) => item.game_id === 'g1')).toEqual(game);
+        expect(found.find((item) => item.game_id === 'g2')?.slots).toEqual([]);
+      });
+
+      it('returns nothing for a tenant that has no games', async () => {
+        const store = make();
+
+        expect(await store.list_games(make_list_query(make_contract_tenant_id()))).toEqual([]);
+      });
+
+      it('returns copies', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([make_contract_game(tenant_id, 'g1')]);
+
+        const [found] = await store.list_games(make_list_query(tenant_id));
+        found!.fingerprint = 'mutated';
+        found!.slots.length = 0;
+
+        const [again] = await store.list_games(make_list_query(tenant_id));
         expect(again?.fingerprint).toBe('fp');
         expect(again?.slots).toHaveLength(1);
       });

@@ -134,3 +134,13 @@ describe('group_games', () => {
     expect(group_games([...games].reverse())).toEqual(group_games(games));
   });
 });
+
+describe('group_games with extended items', () => {
+  it('keeps the extra fields of the items it groups', () => {
+    const extended = { ...make_game(), my_position: 'Referee' };
+
+    const result = group_games([extended]);
+
+    expect(result[0]?.dates[0]?.games[0]?.my_position).toBe('Referee');
+  });
+});

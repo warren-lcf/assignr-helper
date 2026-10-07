@@ -1,18 +1,10 @@
 import { IGameGroupDate } from './game_group_date.model.js';
 import { IGameGroupLocation } from './game_group_location.model.js';
 import { IGameListItem } from './game_list_item.model.js';
+import { resolve_location_label } from './resolve_location_label.js';
 import { UNKNOWN_LOCATION_LABEL } from './unknown_location_label.constant.js';
 
 const location_collator = new Intl.Collator('en-US', { sensitivity: 'base', numeric: true });
-
-/**
- * Resolves the label a game is grouped under.
- * @param item The game.
- * @returns `location_group`, else `venue_name`, else the unknown-location label.
- */
-function location_label_of(item: IGameListItem): string {
-  return item.location_group ?? item.venue_name ?? UNKNOWN_LOCATION_LABEL;
-}
 
 /**
  * Compares two games by start instant, then game id so ties stay stable.
@@ -74,23 +66,23 @@ function compare_locations(a: string, b: string): number {
  * Locations are sorted alphabetically (case-insensitive) with the unknown
  * location last; dates ascend with unknown dates last; games within a date
  * ascend by start time then id. The input is not mutated.
- * @param items Games to group.
+ * @param items Games to group; any extension of `IGameListItem` keeps its extra fields.
  * @returns Locations, each with its dated game buckets.
  */
-export function group_games(items: IGameListItem[]): IGameGroupLocation[] {
-  const by_location = new Map<string, Map<number | null, IGameListItem[]>>();
+export function group_games<T extends IGameListItem>(items: T[]): IGameGroupLocation<T>[] {
+  const by_location = new Map<string, Map<number | null, T[]>>();
 
   for (const item of items) {
-    const label = location_label_of(item);
-    const by_date = by_location.get(label) ?? new Map<number | null, IGameListItem[]>();
+    const label = resolve_location_label(item.location_group, item.venue_name);
+    const by_date = by_location.get(label) ?? new Map<number | null, T[]>();
     const games = by_date.get(item.local_date) ?? [];
     games.push(item);
     by_date.set(item.local_date, games);
     by_location.set(label, by_date);
   }
 
-  const locations: IGameGroupLocation[] = [...by_location.entries()].map(([label, by_date]) => {
-    const dates: IGameGroupDate[] = [...by_date.entries()]
+  const locations: IGameGroupLocation<T>[] = [...by_location.entries()].map(([label, by_date]) => {
+    const dates: IGameGroupDate<T>[] = [...by_date.entries()]
       .map(([local_date, games]) => ({ local_date, games: [...games].sort(compare_games) }))
       .sort((a, b) => compare_dates(a.local_date, b.local_date));
     return { location_label: label, dates };

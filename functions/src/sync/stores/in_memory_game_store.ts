@@ -1,4 +1,6 @@
+import { GameListScope } from '../enums/game_list_scope.enum.js';
 import { SyncKind } from '../enums/sync_kind.enum.js';
+import { IGameListQuery } from '../models/game_list_query.model.js';
 import { IStoredGame } from '../models/stored_game.model.js';
 import { IUnseenGamesQuery } from '../models/unseen_games_query.model.js';
 import { IGameStore } from '../ports/game_store.interface.js';
@@ -62,6 +64,30 @@ export class InMemoryGameStore implements IGameStore {
           row.start_at <= query.window_end &&
           row.last_seen_sync_run_id !== query.seen_run_id &&
           (organization_ids === null || organization_ids.has(row.organization_id)),
+      )
+      .sort((a, b) => a.start_at - b.start_at || (a.game_id < b.game_id ? -1 : 1))
+      .map((row) => structuredClone(row));
+  }
+
+  /**
+   * Lists a tenant's stored games for display, across all of its connections.
+   * @param query Selection criteria.
+   * @returns Copies of the games that are not removed and start inside the inclusive window,
+   *   ordered by `start_at` then `game_id`.
+   */
+  public async list_games(query: IGameListQuery): Promise<IStoredGame[]> {
+    return [...this.rows.values()]
+      .filter(
+        (row) =>
+          row.tenant_id === query.tenant_id &&
+          row.removed_at === null &&
+          row.start_at >= query.window_start &&
+          row.start_at <= query.window_end &&
+          (query.scope === GameListScope.OPEN
+            ? row.is_open
+            : query.scope === GameListScope.MINE
+              ? row.is_mine
+              : row.is_open || row.is_mine),
       )
       .sort((a, b) => a.start_at - b.start_at || (a.game_id < b.game_id ? -1 : 1))
       .map((row) => structuredClone(row));

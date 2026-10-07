@@ -344,5 +344,68 @@ export function describe_venue_store_contract(label: string, make: () => IVenueS
       const [again] = await store.upsert_venues(tenant_id, 'c1', [make_venue()], 'a', 1);
       expect(again).toMatchObject({ name: 'Field 1', location_group: null });
     });
+
+    describe('list_venues', () => {
+      it('lists the venues of every connection of the tenant, with user edits and audit stamps', async () => {
+        const { store, set_location_group } = make();
+        const tenant_id = make_contract_tenant_id();
+        const [first] = await store.upsert_venues(
+          tenant_id,
+          'c1',
+          [make_venue({ external_id: 'a', name: 'Alpha' })],
+          'actor-a',
+          100,
+        );
+        const [second] = await store.upsert_venues(
+          tenant_id,
+          'c2',
+          [make_venue({ external_id: 'a', name: 'Beta' })],
+          'actor-b',
+          200,
+        );
+        await set_location_group(tenant_id, first!.venue_id, 'North Complex');
+
+        const listed = await store.list_venues(tenant_id);
+
+        const by_name = [...listed].sort((a, b) => (a.name < b.name ? -1 : 1));
+        expect(by_name).toEqual([{ ...first, location_group: 'North Complex' }, second]);
+      });
+
+      it('never returns another tenant venues', async () => {
+        const { store } = make();
+        const tenant_id = make_contract_tenant_id();
+        const other_tenant_id = make_contract_tenant_id();
+        await store.upsert_venues(tenant_id, 'c1', [make_venue()], 'a', 1);
+        await store.upsert_venues(
+          other_tenant_id,
+          'c1',
+          [make_venue({ external_id: 'other', name: 'Other tenant' })],
+          'a',
+          1,
+        );
+
+        const listed = await store.list_venues(tenant_id);
+
+        expect(listed.map((row) => row.name)).toEqual(['Field 1']);
+      });
+
+      it('returns nothing for a tenant that has no venues', async () => {
+        const { store } = make();
+
+        expect(await store.list_venues(make_contract_tenant_id())).toEqual([]);
+      });
+
+      it('returns copies', async () => {
+        const { store } = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.upsert_venues(tenant_id, 'c1', [make_venue()], 'a', 1);
+
+        const [listed] = await store.list_venues(tenant_id);
+        listed!.name = 'hacked';
+
+        const [again] = await store.list_venues(tenant_id);
+        expect(again?.name).toBe('Field 1');
+      });
+    });
   });
 }

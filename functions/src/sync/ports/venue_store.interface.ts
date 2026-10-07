@@ -20,4 +20,11 @@ export interface IVenueStore {
     actor: string,
     now: number,
   ): Promise<IStoredVenue[]>;
+
+  /**
+   * Lists every venue of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Stored venues; the order is unspecified.
+   */
+  list_venues(tenant_id: string): Promise<IStoredVenue[]>;
 }

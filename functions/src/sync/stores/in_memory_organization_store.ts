@@ -34,6 +34,17 @@ export class InMemoryOrganizationStore implements IOrganizationStore {
   }
 
   /**
+   * Lists every organization of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Copies of the stored organizations, in insertion order.
+   */
+  public async list_all_organizations(tenant_id: string): Promise<IStoredOrganization[]> {
+    return [...this.rows.values()]
+      .filter((row) => row.tenant_id === tenant_id)
+      .map((row) => structuredClone(row));
+  }
+
+  /**
    * Inserts new organizations and refreshes name and flags of existing ones.
    * Existing rows keep `organization_id`, `created_*` and `sync_enabled`; their
    * `updated_*` columns change only when name or flags changed.

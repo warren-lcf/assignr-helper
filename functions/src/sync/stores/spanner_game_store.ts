@@ -1,7 +1,9 @@
 import { Database, Snapshot } from '@google-cloud/spanner';
 import { AssignmentResponseStatus } from '../../integrations/enums/assignment_response_status.enum.js';
 import { GameStatus } from '../../integrations/enums/game_status.enum.js';
+import { GameListScope } from '../enums/game_list_scope.enum.js';
 import { SyncKind } from '../enums/sync_kind.enum.js';
+import { IGameListQuery } from '../models/game_list_query.model.js';
 import { IStoredGame } from '../models/stored_game.model.js';
 import { IStoredGameSlot } from '../models/stored_game_slot.model.js';
 import { IUnseenGamesQuery } from '../models/unseen_games_query.model.js';
@@ -134,6 +136,48 @@ export class SpannerGameStore implements IGameStore {
       params,
       types,
     );
+  }
+
+  /**
+   * Lists a tenant's stored games for display, across all of its connections. Reads by the
+   * `(tenant_id, game_id)` primary key prefix and filters on `start_at`; the per-tenant
+   * history is small enough that no secondary index is needed yet.
+   * @param query Selection criteria.
+   * @returns Games that are not removed and start inside the inclusive window, ordered by
+   *   `start_at` then `game_id`, with slots attached.
+   */
+  public async list_games(query: IGameListQuery): Promise<IStoredGame[]> {
+    return this.read_games_with_slots(
+      query.tenant_id,
+      `SELECT ${GAME_COLUMNS} FROM games ` +
+        'WHERE tenant_id = @tenant_id AND removed_at IS NULL ' +
+        `AND start_at BETWEEN @window_start AND @window_end AND ${this.scope_predicate(query.scope)} ` +
+        'ORDER BY start_at, game_id',
+      {
+        tenant_id: query.tenant_id,
+        window_start: query.window_start,
+        window_end: query.window_end,
+      },
+      { tenant_id: 'string', window_start: 'int64', window_end: 'int64' },
+    );
+  }
+
+  /**
+   * Builds the SQL condition for a listing scope from fixed fragments only.
+   * @param scope Which games to select.
+   * @returns A boolean SQL expression over `is_open` and `is_mine`.
+   */
+  private scope_predicate(scope: GameListScope): string {
+    switch (scope) {
+      case GameListScope.OPEN:
+        return 'is_open = TRUE';
+      case GameListScope.MINE:
+        return 'is_mine = TRUE';
+      case GameListScope.ALL:
+        return '(is_open = TRUE OR is_mine = TRUE)';
+      default:
+        throw new Error(`list_games does not support scope ${String(scope)}`);
+    }
   }
 
   /**

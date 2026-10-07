@@ -40,6 +40,15 @@ describe('create_production_app', () => {
     expect((await request(app).get('/api/connections/c1/sync-runs')).status).toBe(401);
   });
 
+  it('protects the games list', async () => {
+    const app = create_production_app(ENV);
+
+    const response = await request(app).get('/api/games');
+
+    expect(response.status).toBe(401);
+    expect(response.body.code).toBe('AUTHENTICATION_REQUIRED');
+  });
+
   it('protects the credential admin routes', async () => {
     const app = create_production_app(ENV);
 

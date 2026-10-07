@@ -325,5 +325,79 @@ export function describe_organization_store_contract(
       const [stored] = await store.list_organizations(tenant_id, 'c1');
       expect(stored).toMatchObject({ name: 'Metro Soccer', flags: { show_all: true } });
     });
+
+    describe('list_all_organizations', () => {
+      it('lists the organizations of every connection of the tenant', async () => {
+        const { store } = make();
+        const tenant_id = make_contract_tenant_id();
+        const [first] = await store.upsert_organizations(
+          tenant_id,
+          'c1',
+          [make_org({ external_id: 'a', name: 'Alpha' })],
+          'actor-a',
+          100,
+        );
+        const [second] = await store.upsert_organizations(
+          tenant_id,
+          'c2',
+          [make_org({ external_id: 'a', name: 'Beta' })],
+          'actor-b',
+          200,
+        );
+
+        const listed = await store.list_all_organizations(tenant_id);
+
+        const by_name = [...listed].sort((a, b) => (a.name < b.name ? -1 : 1));
+        expect(by_name).toEqual([first, second]);
+      });
+
+      it('reflects the user-controlled sync switch', async () => {
+        const { store, set_sync_enabled } = make();
+        const tenant_id = make_contract_tenant_id();
+        const [created] = await store.upsert_organizations(tenant_id, 'c1', [make_org()], 'a', 1);
+        await set_sync_enabled(tenant_id, created!.organization_id, false);
+
+        const [listed] = await store.list_all_organizations(tenant_id);
+
+        expect(listed?.sync_enabled).toBe(false);
+      });
+
+      it('never returns another tenant organizations', async () => {
+        const { store } = make();
+        const tenant_id = make_contract_tenant_id();
+        const other_tenant_id = make_contract_tenant_id();
+        await store.upsert_organizations(tenant_id, 'c1', [make_org()], 'a', 1);
+        await store.upsert_organizations(
+          other_tenant_id,
+          'c1',
+          [make_org({ external_id: 'other', name: 'Other tenant' })],
+          'a',
+          1,
+        );
+
+        const listed = await store.list_all_organizations(tenant_id);
+
+        expect(listed.map((row) => row.name)).toEqual(['Metro Soccer']);
+      });
+
+      it('returns nothing for a tenant that has no organizations', async () => {
+        const { store } = make();
+
+        expect(await store.list_all_organizations(make_contract_tenant_id())).toEqual([]);
+      });
+
+      it('returns copies', async () => {
+        const { store } = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.upsert_organizations(tenant_id, 'c1', [make_org()], 'a', 1);
+
+        const [listed] = await store.list_all_organizations(tenant_id);
+        listed!.name = 'hacked';
+        listed!.flags['show_all'] = false;
+
+        const [again] = await store.list_all_organizations(tenant_id);
+        expect(again).toMatchObject({ name: 'Metro Soccer', flags: { show_all: true } });
+      });
+    });
   });
 }

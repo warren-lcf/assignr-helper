@@ -19,6 +19,8 @@ import { create_connections_admin_router } from '../connections/connections_admi
 import { InMemoryCredentialVault } from '../connections/in_memory_credential_vault.js';
 import { IAccountVerifier } from '../connections/ports/account_verifier.interface.js';
 import { InMemoryConnectionStore } from '../connections/stores/in_memory_connection_store.js';
+import { create_games_router } from '../games/games.routes.js';
+import { GamesListService } from '../games/games_list.service.js';
 import { ConnectionSyncService } from './connection_sync.service.js';
 import { ISyncHarness, make_sync_harness } from './make_sync_harness.fixture.js';
 import { create_sync_router } from './sync.routes.js';
@@ -68,6 +70,12 @@ export function make_routes_app(): IRoutesApp {
     },
     now: harness.deps.now,
     generate_id: harness.deps.generate_id,
+  });
+  const games_service = new GamesListService({
+    games: harness.games,
+    venues: harness.venues,
+    organizations: harness.organizations,
+    now: harness.clock,
   });
   const vault = new InMemoryCredentialVault();
   const audit = create_in_memory_audit_log_store();
@@ -139,6 +147,7 @@ export function make_routes_app(): IRoutesApp {
     mount_protected_routes: (target) => {
       target.use('/api', create_connections_router(connections, permission_service));
       target.use('/api', create_connections_admin_router({ admin_service, permission_service }));
+      target.use('/api', create_games_router({ games_service, permission_service }));
       target.use(
         '/api',
         create_sync_router({
