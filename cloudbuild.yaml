@@ -83,6 +83,15 @@ steps:
         npm --prefix functions test -- src/sync/stores
     waitFor: ['spanner-provision']
 
+  - id: auth-integration-tests
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npx -y firebase-tools@15 emulators:exec --only auth --project demo-assignr-helper "npm --prefix functions test -- src/auth/auth_emulator"
+    waitFor: ['spanner-contract-tests']
+
   - id: e2e
     name: mcr.microsoft.com/playwright:v1.63.0-noble
     entrypoint: bash
@@ -91,7 +100,7 @@ steps:
       - |
         export SPANNER_EMULATOR_HOST=spanner-emulator:9010
         npx playwright test
-    waitFor: ['spanner-contract-tests']
+    waitFor: ['auth-integration-tests']
 
   - id: migrate
     name: node:22
