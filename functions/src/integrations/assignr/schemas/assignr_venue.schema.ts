@@ -5,7 +5,8 @@ const text_or_number = z.union([z.string(), z.number()]).nullish();
 
 /**
  * Venue embedded in a game. Address field names come from second-hand docs and
- * are tolerated in several spellings; verify against a live response.
+ * are tolerated in several spellings. Assignr sends latitude and longitude as
+ * strings (seen on a live account), so both text and numbers are accepted.
  */
 export const assignr_venue_schema = z.looseObject({
   id: assignr_id_schema,
@@ -16,7 +17,7 @@ export const assignr_venue_schema = z.looseObject({
   state: text_or_number,
   zip: text_or_number,
   postal_code: text_or_number,
-  latitude: z.number().nullish(),
-  longitude: z.number().nullish(),
+  latitude: text_or_number,
+  longitude: text_or_number,
   timezone: z.string().nullish(),
 });
