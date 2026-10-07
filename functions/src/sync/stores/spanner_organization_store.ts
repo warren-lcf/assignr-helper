@@ -55,6 +55,23 @@ export class SpannerOrganizationStore implements IOrganizationStore {
   }
 
   /**
+   * Lists every organization of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Stored organizations ordered by name, then connection and provider id.
+   */
+  public async list_all_organizations(tenant_id: string): Promise<IStoredOrganization[]> {
+    const [rows] = await this.database.run({
+      sql:
+        `SELECT ${ORGANIZATION_COLUMNS} FROM organizations WHERE tenant_id = @tenant_id ` +
+        'ORDER BY name, connection_id, external_id',
+      params: { tenant_id },
+      types: { tenant_id: 'string' },
+      json: true,
+    });
+    return (rows as Record<string, unknown>[]).map((row) => this.to_organization(row));
+  }
+
+  /**
    * Inserts new organizations and refreshes name and flags of existing ones.
    * Existing rows keep `organization_id`, `created_*` and `sync_enabled`; their
    * `updated_*` columns change only when name or flags changed. The read and the

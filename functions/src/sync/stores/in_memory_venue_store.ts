@@ -92,6 +92,17 @@ export class InMemoryVenueStore implements IVenueStore {
   }
 
   /**
+   * Lists every venue of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Copies of the stored venues, in insertion order.
+   */
+  public async list_venues(tenant_id: string): Promise<IStoredVenue[]> {
+    return [...this.rows.values()]
+      .filter((row) => row.tenant_id === tenant_id)
+      .map((row) => structuredClone(row));
+  }
+
+  /**
    * Test helper that simulates the user editing a venue's location group.
    * Does not touch audit columns. Does nothing when no such venue exists in the tenant.
    * @param tenant_id Owning tenant; venues of other tenants are never modified.

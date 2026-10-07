@@ -149,6 +149,23 @@ export class SpannerVenueStore implements IVenueStore {
   }
 
   /**
+   * Lists every venue of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Stored venues ordered by name, then connection and provider id.
+   */
+  public async list_venues(tenant_id: string): Promise<IStoredVenue[]> {
+    const [rows] = await this.database.run({
+      sql:
+        `SELECT ${VENUE_COLUMNS} FROM venues WHERE tenant_id = @tenant_id ` +
+        'ORDER BY name, connection_id, external_id',
+      params: { tenant_id },
+      types: { tenant_id: 'string' },
+      json: true,
+    });
+    return (rows as Record<string, unknown>[]).map((row) => this.to_venue(row));
+  }
+
+  /**
    * Returns the id reserved for a provider id, generating it on first use.
    * @param reserved_ids Ids reserved so far in this upsert, keyed by provider id.
    * @param external_id Provider id of the new row.

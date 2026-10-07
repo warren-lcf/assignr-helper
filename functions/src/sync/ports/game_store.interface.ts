@@ -1,3 +1,4 @@
+import { IGameListQuery } from '../models/game_list_query.model.js';
 import { IStoredGame } from '../models/stored_game.model.js';
 import { IUnseenGamesQuery } from '../models/unseen_games_query.model.js';
 
@@ -29,4 +30,12 @@ export interface IGameStore {
    * @returns Matching games.
    */
   find_unseen(query: IUnseenGamesQuery): Promise<IStoredGame[]>;
+
+  /**
+   * Lists a tenant's stored games for display, across all of its connections.
+   * @param query Selection criteria.
+   * @returns Matching games that are not removed, ordered by `start_at` then `game_id`,
+   *   with slots attached.
+   */
+  list_games(query: IGameListQuery): Promise<IStoredGame[]>;
 }

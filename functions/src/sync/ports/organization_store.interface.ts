@@ -28,4 +28,11 @@ export interface IOrganizationStore {
     actor: string,
     now: number,
   ): Promise<IStoredOrganization[]>;
+
+  /**
+   * Lists every organization of a tenant, across all of its connections.
+   * @param tenant_id Owning tenant.
+   * @returns Stored organizations; the order is unspecified.
+   */
+  list_all_organizations(tenant_id: string): Promise<IStoredOrganization[]>;
 }

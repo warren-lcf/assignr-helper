@@ -1,5 +1,6 @@
 import { Database } from '@google-cloud/spanner';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { GameListScope } from '../enums/game_list_scope.enum.js';
 import { SyncKind } from '../enums/sync_kind.enum.js';
 import { make_contract_game } from './contracts/make_contract_game.js';
 import { make_contract_tenant_id } from './contracts/make_contract_tenant_id.js';
@@ -58,6 +59,21 @@ describe('SpannerGameStore without a database round trip', () => {
     expect(
       await new SpannerGameStore(database).find_unseen({ ...QUERY, organization_ids: [] }),
     ).toEqual([]);
+
+    expect(spies.getSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported listing scope before querying', async () => {
+    const { spies, database } = make_unused_database();
+
+    await expect(
+      new SpannerGameStore(database).list_games({
+        tenant_id: 't1',
+        window_start: 0,
+        window_end: 10,
+        scope: 'EVERYTHING' as GameListScope,
+      }),
+    ).rejects.toThrow('list_games does not support scope EVERYTHING');
 
     expect(spies.getSnapshot).not.toHaveBeenCalled();
   });

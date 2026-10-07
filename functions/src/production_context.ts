@@ -13,6 +13,7 @@ import { IAppAuth } from './auth/models/app_auth.model.js';
 import { SpannerMembershipResolver } from './auth/spanner_membership_resolver.js';
 import { StaticRoleStore } from './auth/static_role_store.js';
 import { require_env } from './config/require_env.js';
+import { GamesListService } from './games/games_list.service.js';
 import { ClientCredentialsTokenSource } from './connections/client_credentials_token_source.js';
 import { ConnectionAdminService } from './connections/connection_admin.service.js';
 import { SecretManagerCredentialVault } from './connections/secret_manager_credential_vault.js';
@@ -34,6 +35,7 @@ export interface IProductionContext {
   connections: IConnectionStore;
   sync_runs: ISyncRunStore;
   sync_service: ConnectionSyncService;
+  games_service: GamesListService;
   admin_service: ConnectionAdminService;
 }
 
@@ -59,6 +61,9 @@ export function create_production_context(
   const permission_service = create_role_permission_service({ store: new StaticRoleStore() });
   const connections = new SpannerConnectionStore(database);
   const sync_runs = new SpannerSyncRunStore(database);
+  const games = new SpannerGameStore(database);
+  const organizations = new SpannerOrganizationStore(database);
+  const venues = new SpannerVenueStore(database);
 
   const secrets = create_google_secret_manager_client({
     project_id: require_env('SECRET_MANAGER_PROJECT_ID', env),
@@ -86,15 +91,11 @@ export function create_production_context(
     sync_service: new ConnectionSyncService({
       connections,
       sessions: new AssignrSessionFactory({ token_source }),
-      stores: {
-        games: new SpannerGameStore(database),
-        organizations: new SpannerOrganizationStore(database),
-        venues: new SpannerVenueStore(database),
-        runs: sync_runs,
-      },
+      stores: { games, organizations, venues, runs: sync_runs },
       now: Date.now,
       generate_id: randomUUID,
     }),
+    games_service: new GamesListService({ games, venues, organizations, now: Date.now }),
     admin_service: new ConnectionAdminService({
       connections,
       vault,
