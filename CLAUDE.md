@@ -37,7 +37,11 @@ Always run tests through these scripts, never a bare `npx vitest` or `npx playwr
 - **Submitting match reports to Assignr** is blocked on Assignr confirming a supported way to submit reports (the documented `POST /game_reports` is deprecated, and there is no card endpoint). Reports are captured locally; `ProviderCapability.MATCH_REPORT_SUBMIT` is intentionally absent for Assignr.
 - **Library gaps** (designed as `LOCAL GAP` frames in Figma, swapped for library components when released): score stepper #991, big numpad #992, choice tiles #993, grouped agenda list #994, share-link manager #995. Also core-server #988 (share links) and #990 (durable offline idempotency stores).
 
-Upstream issues live in `Hamble-Creek-Holdings-LLC/hamble-creek-holdings` (#986 to #996). Never edit that repo from here; file an issue instead.
+Figma library gaps found while designing the screens (also in the same repo): page-container slot #1010, dialog body slot #1011, touch-sized controls #1012, status-chip tones #1013, filter-bar/skeleton/input sizing #1014, connected-integrations detail #1015, bottom sheet and date range picker #1016, composable app shell #1017, tabular numerals/card colours/map/icons #1018. Fixed-size tables are tracked in #904 (comment added).
+
+Until #1010 ships, designs use `hch-card` as the page wrapper in places (games, quick link, match report) and an edited `hch-page-container` in others; align them when the slot exists.
+
+Upstream issues live in `Hamble-Creek-Holdings-LLC/hamble-creek-holdings` (#986 to #996 for framework gaps). Never edit that repo from here; file an issue instead.
 
 ## Figma
 
