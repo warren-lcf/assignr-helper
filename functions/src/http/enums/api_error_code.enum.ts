@@ -1,0 +1,7 @@
+/** Machine-readable reasons the API refuses a request, beyond the auth codes. */
+export enum ApiErrorCode {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  TENANT_REQUIRED = 'TENANT_REQUIRED',
+  CONNECTION_NOT_SYNCABLE = 'CONNECTION_NOT_SYNCABLE',
+}

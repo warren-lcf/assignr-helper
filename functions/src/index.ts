@@ -1,6 +1,9 @@
 import { initializeApp } from 'firebase-admin/app';
 import { onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { create_production_app } from './production_app.js';
+import { create_production_context } from './production_context.js';
+import { run_scheduled_sync } from './sync/scheduled_sync.js';
 
 initializeApp();
 
@@ -11,4 +14,21 @@ initializeApp();
 export const assignr_helper_api = onRequest(
   { memory: '512MiB', region: 'us-east4' },
   create_production_app(),
+);
+
+/**
+ * Syncs every eligible connection every 15 minutes, least recently synced first.
+ * A connection that has lost its credentials is flagged and skipped from then on.
+ */
+export const sync_connections_job = onSchedule(
+  {
+    schedule: 'every 15 minutes',
+    region: 'us-east4',
+    memory: '512MiB',
+    timeoutSeconds: 540,
+    retryCount: 0,
+  },
+  async () => {
+    await run_scheduled_sync(create_production_context().sync_service);
+  },
 );

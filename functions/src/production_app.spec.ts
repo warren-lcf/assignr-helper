@@ -28,4 +28,12 @@ describe('create_production_app', () => {
     expect(protected_response.status).toBe(401);
     expect(protected_response.body.code).toBe('AUTHENTICATION_REQUIRED');
   });
+
+  it('protects the connection and sync routes too', async () => {
+    const app = create_production_app(ENV);
+
+    expect((await request(app).get('/api/connections')).status).toBe(401);
+    expect((await request(app).post('/api/connections/c1/sync')).status).toBe(401);
+    expect((await request(app).get('/api/connections/c1/sync-runs')).status).toBe(401);
+  });
 });

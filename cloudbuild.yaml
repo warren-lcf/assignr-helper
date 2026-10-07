@@ -80,7 +80,7 @@ steps:
       - |
         export SPANNER_EMULATOR_HOST=spanner-emulator:9010
         export SPANNER_PROJECT_ID=assignr-helper-local SPANNER_INSTANCE_ID=local SPANNER_DATABASE_ID=assignr-helper
-        npm --prefix functions test -- src/sync/stores
+        npm --prefix functions test -- src/sync/stores src/connections/stores src/auth/spanner_membership_resolver
     waitFor: ['spanner-provision']
 
   - id: auth-integration-tests

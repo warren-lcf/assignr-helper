@@ -11,7 +11,9 @@ const instance_id = process.env.SPANNER_INSTANCE_ID ?? 'local';
 const database_id = process.env.SPANNER_DATABASE_ID ?? 'assignr-helper';
 
 if (!process.env.SPANNER_EMULATOR_HOST) {
-  console.error('Refusing to provision: SPANNER_EMULATOR_HOST is not set (this script is emulator-only).');
+  console.error(
+    'Refusing to provision: SPANNER_EMULATOR_HOST is not set (this script is emulator-only).',
+  );
   process.exit(1);
 }
 

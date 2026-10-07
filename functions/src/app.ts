@@ -17,6 +17,11 @@ export interface ICreateAppOptions {
   auth?: IAppAuth;
   /** Mounts protected routes after the auth middleware; only called when `auth` is set. */
   mount_protected_routes?: (app: Express, auth: IAppAuth) => void;
+  /**
+   * Parse JSON request bodies here. Leave off when running behind Firebase's
+   * `onRequest`, which has already parsed the body; turn on for specs and local servers.
+   */
+  parse_json_bodies?: boolean;
 }
 
 /**
@@ -30,6 +35,7 @@ export interface ICreateAppOptions {
 export function create_app(options: ICreateAppOptions = {}): Express {
   const app = express();
   app.disable('x-powered-by');
+  if (options.parse_json_bodies) app.use(express.json({ limit: '100kb' }));
 
   app.use('/api', create_health_router(options.now));
   options.mount_routes?.(app);
