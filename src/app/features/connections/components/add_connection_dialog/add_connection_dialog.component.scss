@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.add-connection__intro {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.add-connection__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.add-connection__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+mat-dialog-actions button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* A phone held sideways leaves too little height for a fixed title and buttons around a scrolling body:
+   the controls of the body would slide under the buttons. Let the whole dialog scroll as one instead. */
+@media (max-height: 600px) {
+  :host {
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  mat-dialog-content {
+    max-height: none;
+    overflow: visible;
+  }
+}

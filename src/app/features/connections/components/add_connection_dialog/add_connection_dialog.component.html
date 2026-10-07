@@ -1,0 +1,97 @@
+<h2 mat-dialog-title>{{ t('Add connection') }}</h2>
+
+<form [formRoot]="form" class="add-connection">
+  <mat-dialog-content>
+    <p class="add-connection__intro">
+      {{
+        t(
+          'Enter the API credentials from your Assignr account. Assignr checks them before anything is saved.'
+        )
+      }}
+    </p>
+
+    <div class="add-connection__fields">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('Provider') }}</mat-label>
+        <mat-select [formField]="form.provider" data-testid="add-connection-provider">
+          @for (option of provider_options(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+        @if (form.provider().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('Client ID') }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          [formField]="form.client_id"
+          data-testid="add-connection-client-id"
+        />
+        @if (form.client_id().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ t('Client secret') }}</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          [formField]="form.client_secret"
+          data-testid="add-connection-client-secret"
+        />
+        <mat-hint>{{ t('Not shown again after saving') }}</mat-hint>
+        @if (form.client_secret().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (form_error(); as message) {
+      <p class="add-connection__error" role="alert" data-testid="add-connection-form-error">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button
+      mat-button
+      type="button"
+      mat-dialog-close
+      [disabled]="form().submitting()"
+      data-testid="add-connection-cancel"
+    >
+      {{ t('Cancel') }}
+    </button>
+    <button
+      mat-flat-button
+      type="submit"
+      [disabled]="form().submitting()"
+      [attr.aria-busy]="form().submitting()"
+      data-testid="add-connection-submit"
+    >
+      @if (form().submitting()) {
+        <mat-progress-spinner
+          mode="indeterminate"
+          [diameter]="18"
+          aria-hidden="true"
+        ></mat-progress-spinner>
+        {{ t('Connecting') }}
+      } @else {
+        {{ t('Connect') }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>
