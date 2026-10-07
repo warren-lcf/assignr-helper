@@ -15,6 +15,7 @@
     "docs": "typedoc --options typedoc.json"
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.3.0",
     "@google-cloud/spanner": "^9.0.0",
     "@hch-shared-libraries/core-server": "14.17.0",
     "@hch-shared-libraries/domain": "14.17.0",

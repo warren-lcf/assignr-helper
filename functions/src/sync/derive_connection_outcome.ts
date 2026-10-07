@@ -4,7 +4,11 @@ import { SyncRunStatus } from './enums/sync_run_status.enum.js';
 import { ISyncRun } from './models/sync_run.model.js';
 
 /** Failure names that mean the provider no longer accepts this connection's credentials. */
-const REAUTH_ERROR_NAMES = new Set(['AssignrAuthError', 'ConnectionNotAuthorizedError']);
+const REAUTH_ERROR_NAMES = new Set([
+  'AssignrAuthError',
+  'AssignrCredentialsRejectedError',
+  'ConnectionNotAuthorizedError',
+]);
 
 /**
  * Decides what a set of sync runs changes on its connection.

@@ -1,4 +1,9 @@
 import { create_role_permission_service } from '@hch-shared-libraries/core-server';
+import {
+  create_audit_log_service,
+  create_in_memory_audit_log_store,
+  type IInMemoryAuditLog,
+} from '@hch-shared-libraries/core-server/audit';
 import type { Express } from 'express';
 import { create_app } from '../app.js';
 import { create_auth_middleware } from '../auth/create_auth_middleware.js';
@@ -8,7 +13,11 @@ import { TenantStatus } from '../auth/enums/tenant_status.enum.js';
 import { TenantType } from '../auth/enums/tenant_type.enum.js';
 import { InMemoryMembershipResolver } from '../auth/in_memory_membership_resolver.js';
 import { StaticRoleStore } from '../auth/static_role_store.js';
+import { ConnectionAdminService } from '../connections/connection_admin.service.js';
 import { create_connections_router } from '../connections/connections.routes.js';
+import { create_connections_admin_router } from '../connections/connections_admin.routes.js';
+import { InMemoryCredentialVault } from '../connections/in_memory_credential_vault.js';
+import { IAccountVerifier } from '../connections/ports/account_verifier.interface.js';
 import { InMemoryConnectionStore } from '../connections/stores/in_memory_connection_store.js';
 import { ConnectionSyncService } from './connection_sync.service.js';
 import { ISyncHarness, make_sync_harness } from './make_sync_harness.fixture.js';
@@ -27,6 +36,10 @@ export interface IRoutesApp {
   app: Express;
   harness: ISyncHarness;
   connections: InMemoryConnectionStore;
+  vault: InMemoryCredentialVault;
+  /** Replace to make the fake provider accept, reject or fail credentials. */
+  verifier: { verify: IAccountVerifier['verify'] };
+  audit: IInMemoryAuditLog;
 }
 
 /**
@@ -55,6 +68,21 @@ export function make_routes_app(): IRoutesApp {
     },
     now: harness.deps.now,
     generate_id: harness.deps.generate_id,
+  });
+  const vault = new InMemoryCredentialVault();
+  const audit = create_in_memory_audit_log_store();
+  const verifier: IRoutesApp['verifier'] = {
+    verify: async () => ({ external_account_id: 'acct-1', label: 'Metro Youth Soccer' }),
+  };
+  let admin_ids = 0;
+  const admin_service = new ConnectionAdminService({
+    connections,
+    vault,
+    verifier: { verify: (provider, credentials) => verifier.verify(provider, credentials) },
+    token_invalidator: { invalidate: () => undefined },
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.deps.now,
+    generate_id: () => `admin-conn-${++admin_ids}`,
   });
   harness.provider.organizations = [{ external_id: '101', name: 'Metro', flags: {} }];
 
@@ -110,6 +138,7 @@ export function make_routes_app(): IRoutesApp {
     },
     mount_protected_routes: (target) => {
       target.use('/api', create_connections_router(connections, permission_service));
+      target.use('/api', create_connections_admin_router({ admin_service, permission_service }));
       target.use(
         '/api',
         create_sync_router({
@@ -121,5 +150,5 @@ export function make_routes_app(): IRoutesApp {
       );
     },
   });
-  return { app, harness, connections };
+  return { app, harness, connections, vault, verifier, audit };
 }
