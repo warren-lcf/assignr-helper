@@ -7,19 +7,17 @@ import {
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { APP_HEADER_IDENTITY_PROVIDER } from '@hch-shared-libraries/ui-kit/app';
-import {
-  BEARER_AUTH_INTERCEPTOR_CONFIG,
-  bearer_auth_interceptor,
-} from '@hch-shared-libraries/ui-kit/authorization';
+import { BEARER_AUTH_INTERCEPTOR_CONFIG } from '@hch-shared-libraries/ui-kit/authorization';
 import {
   TRANSLATION_PROVIDER,
   resolve_default_translation_locale,
 } from '@hch-shared-libraries/ui-kit/core/translation';
 import { routes } from './app.routes';
+import { app_bearer_auth_interceptor } from './core/interceptors/app_bearer_auth_interceptor';
 import { IdentityService } from './core/services/identity/identity.service';
 import { AppTranslationService } from './core/services/translation/app_translation.service';
 
-/** API paths that receive the signed-in user's bearer token. */
+/** API paths that receive the signed-in user's bearer token (`/api/public/` is excluded by the interceptor). */
 const API_URL_PREFIXES = ['/api/'];
 
 /**
@@ -31,7 +29,7 @@ export const app_config: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withFetch(), withInterceptors([bearer_auth_interceptor])),
+    provideHttpClient(withFetch(), withInterceptors([app_bearer_auth_interceptor])),
     {
       provide: BEARER_AUTH_INTERCEPTOR_CONFIG,
       useFactory: () => {

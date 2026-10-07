@@ -1,0 +1,84 @@
+<hch-page-container
+  [title]="t('Quick links')"
+  icon="link"
+  [subtitle]="t('Share a live list of your open games, no sign-in needed')"
+  [header_actions]="header_actions()"
+>
+  @if (is_loading()) {
+    <div
+      class="quick-links-page__grid"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading quick links')"
+      data-testid="quick-links-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-card [line_count]="4"></hch-skeleton-card>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Quick links could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="quick-links-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to quick links')"
+      [description]="t('Ask a tenant owner to give your role access to quick links.')"
+      data-testid="quick-links-no-access"
+    ></hch-empty-state>
+  } @else if (load_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="
+        needs_tenant() ? t('Choose a tenant first') : t('Quick links could not be loaded')
+      "
+      [description]="
+        needs_tenant()
+          ? t('Pick the tenant to act in from the header, then try again.')
+          : t('Check your connection and try again.')
+      "
+      [action_label]="t('Try again')"
+      action_testid="quick-links-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (link_list().length === 0) {
+    <hch-empty-state
+      icon="add_link"
+      [headline]="t('No quick links yet')"
+      [description]="
+        t(
+          'Create a link and send it to anyone who should see your open games. They need no account, and you can revoke it at any time.'
+        )
+      "
+      [action_label]="t('Create link')"
+      action_testid="quick-links-empty-create"
+      (action_clicked)="on_create_requested()"
+    ></hch-empty-state>
+  } @else {
+    <p
+      class="quick-links-page__count"
+      role="status"
+      aria-live="polite"
+      data-testid="quick-links-count"
+    >
+      {{ count_text() }}
+    </p>
+    <div class="quick-links-page__grid" data-testid="quick-links-list">
+      @for (link of link_list(); track link.link_id) {
+        <app-quick-link-card
+          [link]="link"
+          [can_manage]="can_manage()"
+          [is_busy]="busy_link_id() === link.link_id"
+          [is_locked]="busy_link_id() !== null"
+          (revoke_requested)="on_revoke_requested($event)"
+        ></app-quick-link-card>
+      }
+    </div>
+  }
+</hch-page-container>

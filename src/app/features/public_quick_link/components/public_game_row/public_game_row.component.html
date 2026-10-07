@@ -1,0 +1,31 @@
+<div class="game-row" [attr.data-testid]="'public-game-' + game().game_id">
+  <p class="game-row__time" [attr.data-testid]="'public-game-time-' + game().game_id">
+    {{ game().start_at | hchUserDate: time_format }}
+  </p>
+
+  <div class="game-row__body">
+    <p class="game-row__title" [attr.data-testid]="'public-game-title-' + game().game_id">
+      {{ title() }}
+    </p>
+
+    @if (game().venue_name; as venue_name) {
+      <p class="game-row__meta">
+        <mat-icon aria-hidden="true">place</mat-icon>
+        <span class="visually-hidden">{{ t('Venue') }}:</span>
+        <span>{{ venue_name }}</span>
+      </p>
+    }
+
+    <div class="game-row__chips">
+      @for (tag of tags(); track tag) {
+        <hch-status-chip [label]="tag" [tone]="tone.NEUTRAL" compact></hch-status-chip>
+      }
+      <hch-status-chip
+        [label]="spots_text()"
+        [tone]="has_open_spots() ? tone.SUCCESS : tone.NEUTRAL"
+        [icon]="has_open_spots() ? 'event_seat' : 'block'"
+        [attr.data-testid]="'public-game-spots-' + game().game_id"
+      ></hch-status-chip>
+    </div>
+  </div>
+</div>

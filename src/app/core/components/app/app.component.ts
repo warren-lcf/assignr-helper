@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -7,12 +8,18 @@ import { IdentityService } from '../../services/identity/identity.service';
 import { NavigationService } from '../../services/navigation/navigation.service';
 import { AppTranslationService } from '../../services/translation/app_translation.service';
 
-/** Path prefix of the public sign-in page, which is shown without the app chrome. */
+/** Path prefix of the public sign-in page. */
 const LOGIN_PATH_PREFIX = '/login';
+
+/** Path prefix of the public quick link page, opened by anyone holding a link. */
+const QUICK_LINK_PATH_PREFIX = '/q/';
+
+/** Pages shown without any app chrome (no header, sidebar or utility bar): the public ones. */
+const CHROMELESS_PATH_PREFIXES: readonly string[] = [LOGIN_PATH_PREFIX, QUICK_LINK_PATH_PREFIX];
 
 /**
  * Root component: the shared application shell (header, sidebar, breadcrumbs,
- * routed content). The sign-in page is shown without any chrome.
+ * routed content). The public pages (sign-in and quick links) are shown without any chrome.
  */
 @Component({
   selector: 'app-root',
@@ -27,18 +34,23 @@ export class AppComponent {
   private readonly router = inject(Router);
   private readonly translation = inject(AppTranslationService);
   private readonly navigation = inject(NavigationService);
+  private readonly location = inject(Location);
 
   private readonly current_url = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       map((event) => event.urlAfterRedirects),
     ),
-    { initialValue: this.router.url },
+    // Before the first navigation finishes the router still reports "/"; the browser address already says where we are,
+    // which keeps the app chrome from flashing on a public page.
+    { initialValue: this.router.url === '/' ? this.location.path() : this.router.url },
   );
 
   public readonly nav_items = this.navigation.nav_items;
   public readonly app_name = computed(() => this.translation.translate('Assignr Helper'));
-  public readonly show_chrome = computed(() => !this.current_url().startsWith(LOGIN_PATH_PREFIX));
+  public readonly show_chrome = computed(
+    () => !CHROMELESS_PATH_PREFIXES.some((prefix) => this.current_url().startsWith(prefix)),
+  );
 
   /**
    * Opens the sign-in page.

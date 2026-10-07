@@ -1,0 +1,67 @@
+<section class="public-filters" [attr.aria-label]="t('Filter games')">
+  <hch-filter-bar
+    data-testid="public-filter-bar"
+    [search_value]="filters().search"
+    [search_placeholder]="t('Search games')"
+    [active_filters]="chips()"
+    (search_valueChange)="on_search_changed($event)"
+    (filter_removed)="on_filter_removed($event)"
+    (filters_cleared)="on_filters_cleared()"
+  >
+    @if (is_mobile()) {
+      <mat-expansion-panel
+        filter-controls
+        class="public-filters__panel"
+        data-testid="public-filters-panel"
+      >
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ t('Filters') }}</mat-panel-title>
+          @if (chips().length > 0) {
+            <mat-panel-description>
+              {{ t('{{count}} active', { count: chips().length }) }}
+            </mat-panel-description>
+          }
+        </mat-expansion-panel-header>
+        <ng-container *ngTemplateOutlet="controls"></ng-container>
+      </mat-expansion-panel>
+    } @else {
+      <div filter-controls class="public-filters__controls">
+        <ng-container *ngTemplateOutlet="controls"></ng-container>
+      </div>
+    }
+  </hch-filter-bar>
+
+  @if (has_filters()) {
+    <div class="public-filters__actions">
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="public-clear-filters"
+        (click)="on_filters_cleared()"
+      >
+        <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+        {{ t('Clear filters') }}
+      </button>
+    </div>
+  }
+
+  <ng-template #controls>
+    @for (control of facet_controls(); track control.key) {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="public-filters__facet">
+        <mat-label>{{ control.label }}</mat-label>
+        <mat-select
+          [value]="control.selected"
+          [attr.data-testid]="control.testid"
+          (selectionChange)="on_facet_selected(control.key, $event.value)"
+        >
+          <mat-option [value]="any_value">{{ control.any_label }}</mat-option>
+          @for (option of control.options; track option) {
+            <mat-option [value]="option">
+              {{ control.key === location_key ? option_label(option) : option }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+  </ng-template>
+</section>

@@ -1,0 +1,55 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.public-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+// The selects take a row of their own below the search, side by side where there is room.
+.public-filters__controls {
+  order: 1;
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.public-filters__facet {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+// On a phone the same controls sit in an expansion panel, one per line with a real gap.
+.public-filters__panel {
+  width: 100%;
+
+  .public-filters__facet {
+    display: block;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+}
+
+// "Clear filters" is a text button of its own: the filter bar own button is icon-only and 40px, below the
+// 44px touch target and without a visible label (upstream gap). The bar button is hidden so there are not two.
+:host ::ng-deep .filter_bar_clear_button {
+  display: none;
+}
+
+.public-filters__actions {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    flex-shrink: 0;
+    min-height: 48px;
+    white-space: nowrap;
+  }
+}
