@@ -1,0 +1,10 @@
+<hch-login-page
+  [heading]="t('Sign in to Assignr Helper')"
+  [subheading]="t('Use your account to see games across your assignors.')"
+  [is_submitting]="is_submitting()"
+  [error_message]="error_message()"
+  [show_google_sign_in]="true"
+  [google_sign_in_label]="t('Sign in with Google')"
+  (credentials_submitted)="on_credentials_submitted($event)"
+  (google_sign_in_requested)="on_google_requested()"
+></hch-login-page>

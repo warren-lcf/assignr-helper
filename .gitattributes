@@ -1,0 +1,4 @@
+# Keep LF in the working tree on every platform so Prettier and CI agree with Windows checkouts.
+* text=auto eol=lf
+*.png binary
+*.ico binary
