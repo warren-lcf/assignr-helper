@@ -1,6 +1,7 @@
 import { NAV_DEFINITIONS } from './core/constants/nav_definitions.constant';
 import { auth_guard } from './core/guards/auth_guard';
 import { FeaturePlaceholderComponent } from './core/components/feature_placeholder/feature_placeholder.component';
+import { GamesPageComponent } from './features/games/components/games_page/games_page.component';
 import { ConnectionsPageComponent } from './features/connections/components/connections_page/connections_page.component';
 import { routes } from './app.routes';
 
@@ -33,12 +34,18 @@ describe('routes', () => {
 
   it('lazy loads the login page and the placeholders', async () => {
     const login = routes.find((route) => route.path === 'login');
-    const games = routes.find((route) => route.path === 'games');
+    const schedule = routes.find((route) => route.path === 'my-schedule');
 
     expect(await (login?.loadComponent as () => Promise<unknown>)()).toBeTruthy();
-    expect(await (games?.loadComponent as () => Promise<unknown>)()).toBe(
+    expect(await (schedule?.loadComponent as () => Promise<unknown>)()).toBe(
       FeaturePlaceholderComponent,
     );
+  });
+
+  it('lazy loads the Games page in place of its placeholder', async () => {
+    const games = routes.find((route) => route.path === 'games');
+
+    expect(await (games?.loadComponent as () => Promise<unknown>)()).toBe(GamesPageComponent);
   });
 
   it('lazy loads the Connections page in place of its placeholder', async () => {
