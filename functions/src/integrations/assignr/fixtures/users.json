@@ -1,0 +1,16 @@
+{
+  "_embedded": {
+    "users": [
+      { "id": 9001, "first_name": "Alex", "last_name": "Referee", "official": true },
+      { "id": 9002, "first_name": "Alex", "last_name": "Referee", "official": true }
+    ]
+  },
+  "page": {
+    "records": 2,
+    "pages": 1,
+    "current_page": 1,
+    "next_page": null,
+    "prev_page": null,
+    "limit": 50
+  }
+}

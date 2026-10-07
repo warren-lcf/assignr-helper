@@ -1,0 +1,44 @@
+{
+  "_embedded": {
+    "games": [
+      {
+        "id": 6001,
+        "start_time": "2026-10-17T10:00:00.000-04:00",
+        "end_time": "2026-10-17T11:15:00.000-04:00",
+        "game_time_zone": "America/New_York",
+        "age_group": "U10",
+        "home_team": "Comets",
+        "away_team": "Rockets",
+        "game_type": "League",
+        "gender": "Girls",
+        "league": "Fall Recreational",
+        "cancelled": false,
+        "published": true,
+        "updated": "2026-10-06T12:00:00.000Z",
+        "lock_version": 1,
+        "_embedded": {
+          "venue": { "id": 78, "name": "Oak Hill Complex Field 1", "timezone": "America/New_York" },
+          "assignments": [{ "id": 8101, "position": "Referee", "position_id": 1 }]
+        }
+      },
+      {
+        "id": 6002,
+        "start_time": "2026-10-17T12:30:00.000-04:00",
+        "game_time_zone": "America/New_York",
+        "age_group": "U14",
+        "home_team": "Titans",
+        "away_team": "Giants",
+        "cancelled": true,
+        "_embedded": { "venue": { "id": 78, "name": "Oak Hill Complex Field 1" } }
+      }
+    ]
+  },
+  "page": {
+    "records": 2,
+    "pages": 1,
+    "current_page": 1,
+    "next_page": null,
+    "prev_page": null,
+    "limit": 50
+  }
+}

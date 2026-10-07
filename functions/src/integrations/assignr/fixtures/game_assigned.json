@@ -1,0 +1,62 @@
+{
+  "id": 5001,
+  "start_time": "2026-10-11T09:00:00.000-04:00",
+  "end_time": "2026-10-11T10:15:00.000-04:00",
+  "localized_date": "Oct 11 2026",
+  "localized_time": "9:00 AM",
+  "time_zone": "America/New_York",
+  "game_time_zone": "America/New_York",
+  "age_group": "U12",
+  "home_team": "Hawks",
+  "away_team": { "id": 12, "name": "Falcons" },
+  "game_type": "League",
+  "gender": "Boys",
+  "league": { "id": 4, "name": "Fall Recreational" },
+  "status": "Active",
+  "cancelled": false,
+  "published": true,
+  "updated": "2026-10-05T18:30:00.000Z",
+  "lock_version": 3,
+  "_embedded": {
+    "venue": {
+      "id": 77,
+      "name": "Riverside Park Field 3",
+      "address": "100 River Rd",
+      "city": "Springfield",
+      "state": "VA",
+      "zip": "22150",
+      "latitude": 38.78,
+      "longitude": -77.18,
+      "timezone": "America/New_York"
+    },
+    "site": { "id": 101 },
+    "assignments": [
+      {
+        "id": 8001,
+        "position": "Referee",
+        "position_id": 1,
+        "accepted": false,
+        "declined": false,
+        "assigned": true,
+        "lock_version": 1,
+        "_embedded": {
+          "official": { "id": 9001, "first_name": "Alex", "last_name": "Referee" },
+          "fees": [
+            { "value": 45, "formatted": "$45.00", "currency": "USD", "description": "Game fee" }
+          ]
+        }
+      },
+      {
+        "id": 8002,
+        "position": "Assistant Referee",
+        "position_id": 2,
+        "accepted": true,
+        "declined": false,
+        "assigned": true,
+        "lock_version": 2,
+        "_embedded": { "official": { "id": 9100, "first_name": "Sam", "last_name": "Linesman" } }
+      },
+      { "id": 8003, "position": "Assistant Referee", "position_id": 2, "assigned": false }
+    ]
+  }
+}

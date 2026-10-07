@@ -1,0 +1,28 @@
+{
+  "_embedded": {
+    "sites": [
+      {
+        "id": 101,
+        "name": "Metro Youth Soccer Assignor",
+        "show_all_games": true,
+        "show_unassigned_games": true,
+        "forms_enabled": false
+      },
+      {
+        "id": 202,
+        "name": "County Rec League",
+        "show_all_games": false,
+        "show_unassigned_games": true,
+        "forms_enabled": true
+      }
+    ]
+  },
+  "page": {
+    "records": 2,
+    "pages": 1,
+    "current_page": 1,
+    "next_page": null,
+    "prev_page": null,
+    "limit": 50
+  }
+}
