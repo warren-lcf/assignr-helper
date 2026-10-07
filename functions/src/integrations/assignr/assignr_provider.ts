@@ -3,6 +3,7 @@ import { IntegrationProvider } from '../enums/integration_provider.enum.js';
 import { ProviderCapability } from '../enums/provider_capability.enum.js';
 import { IAssignmentResponseCommand } from '../models/assignment_response_command.model.js';
 import { IGameRequestCommand } from '../models/game_request_command.model.js';
+import { IListGamesResult } from '../models/list_games_result.model.js';
 import { INormalizedGame } from '../models/normalized_game.model.js';
 import { INormalizedOrganization } from '../models/normalized_organization.model.js';
 import { IProviderContext } from '../models/provider_context.model.js';
@@ -64,14 +65,14 @@ export class AssignrProvider implements ISchedulingProvider {
       { 'search[status]': 'active' },
       'sites',
     );
-    return this.map_each(items, (item) => map_assignr_site(item));
+    return this.map_each(items, (item) => map_assignr_site(item)).mapped;
   }
 
   /** @inheritdoc */
   public async list_my_games(
     ctx: IProviderContext,
     window: ISyncWindow,
-  ): Promise<INormalizedGame[]> {
+  ): Promise<IListGamesResult> {
     const token = await ctx.get_access_token();
     const my_user_ids = await this.my_user_ids(ctx, token);
     const items = await fetch_all_pages(
@@ -81,7 +82,7 @@ export class AssignrProvider implements ISchedulingProvider {
       this.window_query(window),
       'games',
     );
-    return this.map_each(items, (item) =>
+    const { mapped, skipped } = this.map_each(items, (item) =>
       map_assignr_game(item, {
         my_user_ids,
         fallback_site_id: null,
@@ -89,16 +90,23 @@ export class AssignrProvider implements ISchedulingProvider {
         force_open: false,
       }),
     );
+    return {
+      games: mapped,
+      skipped_count: skipped,
+      complete_organization_external_ids: skipped === 0 ? null : [],
+    };
   }
 
   /** @inheritdoc */
   public async list_open_games(
     ctx: IProviderContext,
     window: ISyncWindow,
-  ): Promise<INormalizedGame[]> {
+  ): Promise<IListGamesResult> {
     const token = await ctx.get_access_token();
     const my_user_ids = await this.my_user_ids(ctx, token);
     const games: INormalizedGame[] = [];
+    const complete_organizations: string[] = [];
+    let skipped_count = 0;
     for (const organization of await this.list_organizations(ctx)) {
       let items: unknown[];
       try {
@@ -113,6 +121,7 @@ export class AssignrProvider implements ISchedulingProvider {
       } catch (error) {
         if (error instanceof AssignrApiError && (error.status === 403 || error.status === 404)) {
           this.on_skipped(organization.external_id, error);
+          skipped_count++;
           continue;
         }
         throw error;
@@ -123,9 +132,12 @@ export class AssignrProvider implements ISchedulingProvider {
         assume_mine: false,
         force_open: true,
       };
-      games.push(...this.map_each(items, (item) => map_assignr_game(item, options)));
+      const { mapped, skipped } = this.map_each(items, (item) => map_assignr_game(item, options));
+      games.push(...mapped);
+      skipped_count += skipped;
+      if (skipped === 0) complete_organizations.push(organization.external_id);
     }
-    return games;
+    return { games, skipped_count, complete_organization_external_ids: complete_organizations };
   }
 
   /** @inheritdoc */
@@ -180,17 +192,22 @@ export class AssignrProvider implements ISchedulingProvider {
     };
   }
 
-  private map_each<TOut>(items: unknown[], map: (item: unknown) => TOut): TOut[] {
+  private map_each<TOut>(
+    items: unknown[],
+    map: (item: unknown) => TOut,
+  ): { mapped: TOut[]; skipped: number } {
     const mapped: TOut[] = [];
+    let skipped = 0;
     for (const item of items) {
       try {
         mapped.push(map(item));
       } catch (error) {
+        skipped++;
         const id = (item as { id?: unknown } | null)?.id;
         this.on_skipped(id === undefined || id === null ? null : String(id), error);
       }
     }
-    return mapped;
+    return { mapped, skipped };
   }
 
   private async my_user_ids(ctx: IProviderContext, token: string): Promise<Set<string>> {

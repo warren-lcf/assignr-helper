@@ -101,10 +101,12 @@ describe('AssignrProvider', () => {
       }),
     });
 
-    const games = await provider.list_my_games(ctx, window);
+    const result = await provider.list_my_games(ctx, window);
 
-    expect(games).toHaveLength(1);
-    expect(games[0].is_mine).toBe(true);
+    expect(result.games).toHaveLength(1);
+    expect(result.games[0].is_mine).toBe(true);
+    expect(result.skipped_count).toBe(0);
+    expect(result.complete_organization_external_ids).toBeNull();
     const games_call = calls.find((call) => call.path === '/current_account/games');
     expect(games_call?.query.get('search[start_date]')).toBe('2026-10-01');
     expect(games_call?.query.get('search[end_date]')).toBe('2026-12-31');
@@ -118,13 +120,16 @@ describe('AssignrProvider', () => {
         new Response(JSON.stringify({ message: 'forbidden' }), { status: 403 }),
     });
 
-    const games = await provider.list_open_games(ctx, window);
+    const result = await provider.list_open_games(ctx, window);
+    const games = result.games;
 
     expect(games.map((game) => game.external_id)).toEqual(['6001', '6002']);
     expect(games[0].organization_external_id).toBe('101');
     expect(games[0].is_open).toBe(true);
     expect(games[1].is_open).toBe(false);
     expect(on_skipped).toHaveBeenCalledWith('202', expect.anything());
+    expect(result.skipped_count).toBe(1);
+    expect(result.complete_organization_external_ids).toEqual(['101']);
   });
 
   it('rethrows non-access failures while listing open games', async () => {

@@ -8,6 +8,7 @@ Referee app: open and assigned games across several assignors, a "games availabl
 - One Express app served by the HTTPS function `assignr_helper_api` (`functions/src/index.ts`, `us-east4`, 512MiB).
 - Canonical data lives in Spanner database `assignr-helper` on the shared instance `shared` in project `hamble-creek-holdings`. The app runs in GCP project `assignr-helper-prod`.
 - Reads come from our copy. Writes (accept, decline, claim) go through a service that calls the provider, then updates our copy and the audit trail.
+- Sync (`functions/src/sync/`): `run_sync` pulls one kind (reference data, open games, my games) through `ISchedulingProvider`, merges with `merge_stored_game`, and records an `ISyncRun`. `sync_connection` runs the three in order. Stores are ports (`IGameStore`, `IVenueStore`, `IOrganizationStore`, `ISyncRunStore`) with in-memory implementations only; the Spanner stores arrive once core-server is installed. Removal is safe by design: a game is only marked gone when its organization was read completely (`IListGamesResult.complete_organization_external_ids`), the open list owns `is_open`, the account's own list owns `is_mine`, and games are soft-removed (`removed_at`), never deleted. Nothing schedules or exposes it yet (needs the auth middleware and Cloud Scheduler wiring).
 - Plan and decisions: `C:\Users\warre\.claude\plans\as-a-senior-product-distributed-tarjan.md` (not in the repo).
 
 ## Commands

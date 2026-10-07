@@ -2,6 +2,7 @@ import { IntegrationProvider } from '../enums/integration_provider.enum.js';
 import { ProviderCapability } from '../enums/provider_capability.enum.js';
 import { IAssignmentResponseCommand } from '../models/assignment_response_command.model.js';
 import { IGameRequestCommand } from '../models/game_request_command.model.js';
+import { IListGamesResult } from '../models/list_games_result.model.js';
 import { INormalizedGame } from '../models/normalized_game.model.js';
 import { INormalizedOrganization } from '../models/normalized_organization.model.js';
 import { IProviderContext } from '../models/provider_context.model.js';
@@ -30,17 +31,17 @@ export interface ISchedulingProvider {
    * honouring the provider's rate budget.
    * @param ctx Per-call provider context.
    * @param window Date window to pull.
-   * @returns Open games in the window.
+   * @returns Open games in the window, with completeness information.
    */
-  list_open_games(ctx: IProviderContext, window: ISyncWindow): Promise<INormalizedGame[]>;
+  list_open_games(ctx: IProviderContext, window: ISyncWindow): Promise<IListGamesResult>;
 
   /**
    * Lists games assigned to the connected account inside the window.
    * @param ctx Per-call provider context.
    * @param window Date window to pull.
-   * @returns The account's games in the window.
+   * @returns The account's games in the window, with completeness information.
    */
-  list_my_games(ctx: IProviderContext, window: ISyncWindow): Promise<INormalizedGame[]>;
+  list_my_games(ctx: IProviderContext, window: ISyncWindow): Promise<IListGamesResult>;
 
   /**
    * Fetches one game live, bypassing the local copy.
