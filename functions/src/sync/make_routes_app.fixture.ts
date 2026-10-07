@@ -20,7 +20,14 @@ import { InMemoryCredentialVault } from '../connections/in_memory_credential_vau
 import { IAccountVerifier } from '../connections/ports/account_verifier.interface.js';
 import { InMemoryConnectionStore } from '../connections/stores/in_memory_connection_store.js';
 import { create_games_router } from '../games/games.routes.js';
+import { IRateLimiter } from '../http/rate_limit/rate_limiter.interface.js';
+import { TokenBucketRateLimiter } from '../http/rate_limit/token_bucket_rate_limiter.js';
 import { GamesListService } from '../games/games_list.service.js';
+import { PublicQuickLinkService } from '../quick_links/public_quick_link.service.js';
+import { QuickLinkService } from '../quick_links/quick_link.service.js';
+import { create_public_quick_links_router } from '../quick_links/public_quick_links.routes.js';
+import { create_quick_links_router } from '../quick_links/quick_links.routes.js';
+import { InMemoryQuickLinkStore } from '../quick_links/stores/in_memory_quick_link_store.js';
 import { ConnectionSyncService } from './connection_sync.service.js';
 import { ISyncHarness, make_sync_harness } from './make_sync_harness.fixture.js';
 import { create_sync_router } from './sync.routes.js';
@@ -42,14 +49,26 @@ export interface IRoutesApp {
   /** Replace to make the fake provider accept, reject or fail credentials. */
   verifier: { verify: IAccountVerifier['verify'] };
   audit: IInMemoryAuditLog;
+  quick_links: InMemoryQuickLinkStore;
+}
+
+/** Optional replacements for the routes app's rate limiting and proxy trust. */
+export interface IRoutesAppOptions {
+  /** Limits every public quick-link request; defaults to a limit no spec reaches by accident. */
+  request_limiter?: IRateLimiter;
+  /** Limits public requests whose token opens nothing; defaults like `request_limiter`. */
+  failure_limiter?: IRateLimiter;
+  /** Proxies trusted to report the caller's address; unset trusts none. */
+  trust_proxy_hops?: number;
 }
 
 /**
  * Builds the real Express app (real auth middleware, real routers) over in-memory
  * stores and a fake provider.
+ * @param options Rate limiters and proxy trust to use instead of the generous defaults.
  * @returns The app and the pieces a spec seeds or inspects.
  */
-export function make_routes_app(): IRoutesApp {
+export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
   const harness = make_sync_harness();
   const connections = new InMemoryConnectionStore();
   const permission_service = create_role_permission_service({ store: new StaticRoleStore() });
@@ -92,6 +111,27 @@ export function make_routes_app(): IRoutesApp {
     now: harness.deps.now,
     generate_id: () => `admin-conn-${++admin_ids}`,
   });
+  const quick_links = new InMemoryQuickLinkStore();
+  let quick_link_ids = 0;
+  const quick_link_service = new QuickLinkService({
+    quick_links,
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.clock,
+    generate_id: () => `ql-${++quick_link_ids}`,
+  });
+  const public_quick_link_service = new PublicQuickLinkService({
+    quick_links,
+    games: harness.games,
+    venues: harness.venues,
+    now: harness.clock,
+  });
+  const generous_limiter = (): IRateLimiter =>
+    new TokenBucketRateLimiter({
+      capacity: 10_000,
+      refill_per_minute: 10_000,
+      max_keys: 100,
+      now: harness.clock,
+    });
   harness.provider.organizations = [{ external_id: '101', name: 'Metro', flags: {} }];
 
   const base = {
@@ -107,6 +147,17 @@ export function make_routes_app(): IRoutesApp {
   };
   const app = create_app({
     parse_json_bodies: true,
+    trust_proxy_hops: options.trust_proxy_hops,
+    mount_routes: (target) => {
+      target.use(
+        '/api',
+        create_public_quick_links_router({
+          service: public_quick_link_service,
+          request_limiter: options.request_limiter ?? generous_limiter(),
+          failure_limiter: options.failure_limiter ?? generous_limiter(),
+        }),
+      );
+    },
     auth: {
       permission_service,
       middleware: create_auth_middleware({
@@ -148,6 +199,7 @@ export function make_routes_app(): IRoutesApp {
       target.use('/api', create_connections_router(connections, permission_service));
       target.use('/api', create_connections_admin_router({ admin_service, permission_service }));
       target.use('/api', create_games_router({ games_service, permission_service }));
+      target.use('/api', create_quick_links_router({ quick_link_service, permission_service }));
       target.use(
         '/api',
         create_sync_router({
@@ -159,5 +211,5 @@ export function make_routes_app(): IRoutesApp {
       );
     },
   });
-  return { app, harness, connections, vault, verifier, audit };
+  return { app, harness, connections, vault, verifier, audit, quick_links };
 }

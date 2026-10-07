@@ -22,6 +22,14 @@ export interface ICreateAppOptions {
    * `onRequest`, which has already parsed the body; turn on for specs and local servers.
    */
   parse_json_bodies?: boolean;
+  /**
+   * How many reverse proxies sit in front of the app and may be believed about the caller's
+   * address (Express `trust proxy` with a hop count). `req.ip` is then the address that many
+   * hops from the right of `X-Forwarded-For`, so a client cannot choose its own by sending the
+   * header. Leave unset when nothing sits in front (specs, local servers): `req.ip` is then the
+   * socket's address and `X-Forwarded-For` is ignored.
+   */
+  trust_proxy_hops?: number;
 }
 
 /**
@@ -35,6 +43,7 @@ export interface ICreateAppOptions {
 export function create_app(options: ICreateAppOptions = {}): Express {
   const app = express();
   app.disable('x-powered-by');
+  if (options.trust_proxy_hops !== undefined) app.set('trust proxy', options.trust_proxy_hops);
   if (options.parse_json_bodies) app.use(express.json({ limit: '100kb' }));
 
   app.use('/api', create_health_router(options.now));

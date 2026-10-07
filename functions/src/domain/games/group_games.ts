@@ -1,6 +1,6 @@
 import { IGameGroupDate } from './game_group_date.model.js';
 import { IGameGroupLocation } from './game_group_location.model.js';
-import { IGameListItem } from './game_list_item.model.js';
+import { IGroupableGame } from './groupable_game.model.js';
 import { resolve_location_label } from './resolve_location_label.js';
 import { UNKNOWN_LOCATION_LABEL } from './unknown_location_label.constant.js';
 
@@ -12,7 +12,7 @@ const location_collator = new Intl.Collator('en-US', { sensitivity: 'base', nume
  * @param b Second game.
  * @returns Negative, zero or positive ordering value.
  */
-function compare_games(a: IGameListItem, b: IGameListItem): number {
+function compare_games(a: IGroupableGame, b: IGroupableGame): number {
   if (a.start_at !== b.start_at) {
     return a.start_at - b.start_at;
   }
@@ -66,10 +66,10 @@ function compare_locations(a: string, b: string): number {
  * Locations are sorted alphabetically (case-insensitive) with the unknown
  * location last; dates ascend with unknown dates last; games within a date
  * ascend by start time then id. The input is not mutated.
- * @param items Games to group; any extension of `IGameListItem` keeps its extra fields.
+ * @param items Games to group; any extension of `IGroupableGame` (list items, public quick-link games) keeps its extra fields.
  * @returns Locations, each with its dated game buckets.
  */
-export function group_games<T extends IGameListItem>(items: T[]): IGameGroupLocation<T>[] {
+export function group_games<T extends IGroupableGame>(items: T[]): IGameGroupLocation<T>[] {
   const by_location = new Map<string, Map<number | null, T[]>>();
 
   for (const item of items) {
