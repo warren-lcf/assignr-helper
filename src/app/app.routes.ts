@@ -12,6 +12,10 @@ const load_placeholder = (): Promise<Type<unknown>> =>
 
 /** Features that are built; every other nav entry still shows the placeholder. */
 const feature_loaders: Readonly<Record<string, () => Promise<Type<unknown>>>> = {
+  games: () =>
+    import('./features/games/components/games_page/games_page.component').then(
+      (module) => module.GamesPageComponent,
+    ),
   connections: () =>
     import('./features/connections/components/connections_page/connections_page.component').then(
       (module) => module.ConnectionsPageComponent,

@@ -1,0 +1,101 @@
+import { TestBed } from '@angular/core/testing';
+import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
+import {
+  BARE_GAME,
+  CANCELLED_GAME,
+  MINE_GAME,
+  OPEN_GAME,
+  make_game_view,
+} from '../../mocks/game_view.mock';
+import { make_translation_service_double } from '../../mocks/translation_service.mock';
+import { IGameView } from '../../models/game_view.model';
+import { GameRowComponent } from './game_row.component';
+
+function render(game: IGameView) {
+  TestBed.configureTestingModule({
+    imports: [GameRowComponent],
+    providers: [{ provide: AppTranslationService, useValue: make_translation_service_double() }],
+  });
+  const fixture = TestBed.createComponent(GameRowComponent);
+  fixture.componentRef.setInput('game', game);
+  fixture.detectChanges();
+  const element = fixture.nativeElement as HTMLElement;
+  const by_testid = (id: string) => element.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+  return { fixture, element, by_testid };
+}
+
+describe('GameRowComponent', () => {
+  it('shows kick-off time, teams, venue and organization', () => {
+    const { by_testid, element } = render(OPEN_GAME);
+
+    expect(by_testid('game-time-game-1')?.textContent).toMatch(/\d{1,2}:\d{2}/);
+    expect(by_testid('game-title-game-1')?.textContent?.trim()).toBe('Lions vs Tigers');
+    expect(element.textContent).toContain('Field 3');
+    expect(element.textContent).toContain('Metro Youth Soccer');
+  });
+
+  it('shows age group, gender, level, league and type as tags', () => {
+    const { element } = render(OPEN_GAME);
+    const tags = Array.from(element.querySelectorAll('[role="group"] hch-status-chip'))
+      .slice(0, 5)
+      .map((chip) => chip.textContent?.trim());
+
+    expect(tags).toEqual(['U12', 'Boys', 'Premier', 'Fall League', 'Regular season']);
+  });
+
+  it('shows open slots as text and an icon, in the tone for "some are open"', () => {
+    const { by_testid } = render(OPEN_GAME);
+    const chip = by_testid('game-slots-game-1');
+
+    expect(chip?.textContent).toContain('1 open of 2 slots');
+    expect(chip?.textContent).toContain('event_seat');
+  });
+
+  it('shows a fully assigned game as "0 open" with a different icon', () => {
+    const { by_testid } = render(MINE_GAME);
+    const chip = by_testid('game-slots-game-2');
+
+    expect(chip?.textContent).toContain('0 open of 3 slots');
+    expect(chip?.textContent).toContain('task_alt');
+  });
+
+  it("marks the referee's own game with the position", () => {
+    const { by_testid } = render(MINE_GAME);
+
+    expect(by_testid('game-mine-game-2')?.textContent).toContain('Mine: Center');
+    expect(by_testid('game-mine-game-2')?.textContent).toContain('person');
+  });
+
+  it('says only "Mine" when no position is known, and nothing for games that are not mine', () => {
+    const without_position = render(make_game_view({ is_mine: true, my_position: null }));
+    expect(without_position.by_testid('game-mine-game-1')?.textContent?.trim()).toContain('Mine');
+    expect(without_position.by_testid('game-mine-game-1')?.textContent).not.toContain('Mine:');
+    TestBed.resetTestingModule();
+
+    expect(render(OPEN_GAME).by_testid('game-mine-game-1')).toBeNull();
+  });
+
+  it('shows a cancelled game as text and an icon, struck through, without a slot count', () => {
+    const { by_testid, element } = render(CANCELLED_GAME);
+
+    expect(by_testid('game-cancelled-game-3')?.textContent).toContain('Cancelled');
+    expect(by_testid('game-cancelled-game-3')?.textContent).toContain('cancel');
+    expect(by_testid('game-slots-game-3')).toBeNull();
+    expect(element.querySelector('.game-row--cancelled')).not.toBeNull();
+  });
+
+  it('copes with a game that has no teams, venue, organization or tags yet', () => {
+    const { by_testid, element } = render(BARE_GAME);
+
+    expect(by_testid('game-title-game-4')?.textContent?.trim()).toBe('Teams to be announced');
+    expect(by_testid('game-slots-game-4')?.textContent).toContain('No slots listed');
+    expect(element.querySelector('.game-row__meta')).toBeNull();
+    expect(element.querySelectorAll('[aria-label="Game details"]')).toHaveLength(0);
+  });
+
+  it('shows no fee, whatever the game carries', () => {
+    const { element } = render(OPEN_GAME);
+
+    expect(element.textContent).not.toMatch(/\$|fee/i);
+  });
+});

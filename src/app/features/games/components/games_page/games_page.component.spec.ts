@@ -1,0 +1,445 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ApplicationRef } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { SessionService } from '../../../../core/services/session/session.service';
+import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
+import { GamesScope } from '../../enums/games_scope.enum';
+import {
+  EMPTY_GAMES_RESULT,
+  GAMES_RESULT,
+  RIVERSIDE_LOCATION,
+  make_game_view,
+  make_games_result,
+} from '../../mocks/game_view.mock';
+import {
+  ISessionDoubleOptions,
+  NO_GAMES_PERMISSIONS,
+  REFEREE_PERMISSIONS,
+  make_session_service_double,
+} from '../../mocks/session_service.mock';
+import { make_translation_service_double } from '../../mocks/translation_service.mock';
+import { IGamesQuery } from '../../models/games_query.model';
+import { IGamesResult } from '../../models/games_result.model';
+import { GamesApiService } from '../../services/games_api.service';
+import { LAST_SCOPE_STORAGE_KEY } from '../../utils/last_scope_storage';
+import { GamesPageComponent } from './games_page.component';
+
+interface IRenderOptions {
+  permissions?: readonly (typeof REFEREE_PERMISSIONS)[number][];
+  session?: ISessionDoubleOptions;
+  list_games?: (query: IGamesQuery) => Observable<IGamesResult>;
+}
+
+function render(options: IRenderOptions = {}) {
+  const api = {
+    list_games: vi.fn((query: IGamesQuery) =>
+      options.list_games ? options.list_games(query) : of(GAMES_RESULT),
+    ),
+  };
+  const session = make_session_service_double(
+    options.permissions ?? REFEREE_PERMISSIONS,
+    options.session,
+  );
+  const router = { navigateByUrl: vi.fn(() => Promise.resolve(true)) };
+  TestBed.configureTestingModule({
+    imports: [GamesPageComponent],
+    providers: [
+      { provide: GamesApiService, useValue: api },
+      { provide: SessionService, useValue: session },
+      { provide: Router, useValue: router },
+      { provide: AppTranslationService, useValue: make_translation_service_double() },
+    ],
+  });
+  const fixture = TestBed.createComponent(GamesPageComponent);
+  fixture.detectChanges();
+  const element = fixture.nativeElement as HTMLElement;
+  const settle = async () => {
+    await TestBed.inject(ApplicationRef).whenStable();
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+    fixture.detectChanges();
+  };
+  const by_testid = (id: string) => element.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+  const queries = () => api.list_games.mock.calls.map(([query]) => query);
+  return {
+    fixture,
+    component: fixture.componentInstance,
+    element,
+    api,
+    session,
+    router,
+    settle,
+    by_testid,
+    queries,
+  };
+}
+
+function http_error(status: number, code: string): HttpErrorResponse {
+  return new HttpErrorResponse({ status, error: { code, message: 'English', violations: [] } });
+}
+
+describe('GamesPageComponent', () => {
+  let logged: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    logged.mockRestore();
+    localStorage.clear();
+  });
+
+  describe('loading and showing games', () => {
+    it('shows skeletons while the first list loads', () => {
+      const pending = new Subject<IGamesResult>();
+      const { by_testid, element } = render({ list_games: () => pending });
+
+      expect(by_testid('games-loading')?.getAttribute('aria-busy')).toBe('true');
+      expect(element.querySelectorAll('hch-skeleton-line').length).toBeGreaterThan(0);
+      expect(element.querySelector('app-game-location-card')).toBeNull();
+    });
+
+    it('shows skeletons while the session loads, and asks for no games yet', async () => {
+      const { by_testid, api, settle } = render({ session: { is_loading: true } });
+      await settle();
+
+      expect(by_testid('games-loading')).not.toBeNull();
+      expect(api.list_games).not.toHaveBeenCalled();
+    });
+
+    it('lists a card per location, in the order the backend gave, under the page title', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      expect(element.querySelector('hch-page-container')).not.toBeNull();
+      expect(element.textContent).toContain('Games');
+      const cards = element.querySelectorAll('app-game-location-card');
+      expect(cards).toHaveLength(2);
+      expect(cards[0].textContent).toContain('Riverside Park');
+      expect(cards[1].textContent).toContain('Location to be announced');
+    });
+
+    it('asks for open games with default filters', async () => {
+      const { queries, settle } = render();
+      await settle();
+
+      expect(queries()).toEqual([
+        { scope: 'OPEN', only_with_open_slots: false, include_cancelled: false },
+      ]);
+    });
+
+    it('announces the count in a polite live region', async () => {
+      const { by_testid, settle } = render();
+      await settle();
+      const count = by_testid('games-count');
+
+      expect(count?.textContent?.trim()).toBe('4 games');
+      expect(count?.getAttribute('role')).toBe('status');
+      expect(count?.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('names a single game in the singular', async () => {
+      const { by_testid, settle } = render({
+        list_games: () =>
+          of(
+            make_games_result({
+              locations: [{ ...RIVERSIDE_LOCATION, dates: [RIVERSIDE_LOCATION.dates[1]] }],
+              total: 1,
+            }),
+          ),
+      });
+      await settle();
+
+      expect(by_testid('games-count')?.textContent?.trim()).toBe('1 game');
+    });
+  });
+
+  describe('permissions', () => {
+    it('shows a clear no-access state, and asks for no games, without games.read', async () => {
+      const { by_testid, element, api, settle } = render({ permissions: NO_GAMES_PERMISSIONS });
+      await settle();
+
+      expect(by_testid('games-no-access')?.textContent).toContain(
+        'You do not have access to games',
+      );
+      expect(element.querySelector('app-games-filters')).toBeNull();
+      expect(api.list_games).not.toHaveBeenCalled();
+    });
+
+    it('offers a retry that reloads the session when it could not load', async () => {
+      const { by_testid, session, api, element, settle } = render({
+        permissions: [],
+        session: { has_failed: true },
+      });
+      await settle();
+
+      expect(element.textContent).toContain('Games could not be loaded');
+      expect(by_testid('games-no-access')).toBeNull();
+      by_testid('games-retry')?.click();
+
+      expect(session.reload_count()).toBeGreaterThan(0);
+      expect(api.list_games).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('filters', () => {
+    it('sends the search, scope and toggles the user chose', async () => {
+      const { component, queries, settle } = render();
+      await settle();
+
+      component.filters.update((filters) => ({
+        ...filters,
+        scope: GamesScope.MINE,
+        search: ' hawks ',
+        only_with_open_slots: true,
+        include_cancelled: true,
+      }));
+      await settle();
+
+      expect(queries()[queries().length - 1]).toEqual({
+        scope: 'MINE',
+        search: 'hawks',
+        only_with_open_slots: true,
+        include_cancelled: true,
+      });
+    });
+
+    it('does not ask again when a filter changes in a way that leaves the query the same', async () => {
+      const { component, api, settle } = render();
+      await settle();
+
+      component.filters.update((filters) => ({ ...filters, search: '   ' }));
+      await settle();
+
+      expect(api.list_games).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks once with no facet chosen: the list itself fills the facet options', async () => {
+      const { component, api, settle } = render();
+      await settle();
+
+      expect(api.list_games).toHaveBeenCalledTimes(1);
+      expect(component.facet_options().league).toEqual(['Fall League']);
+      expect(component.facet_options().location_group).toEqual([
+        'Riverside Park',
+        'Location to be announced',
+      ]);
+    });
+
+    it('asks for facet options without the facets once one is chosen, so the other options stay', async () => {
+      const spring = make_games_result({
+        locations: [
+          {
+            location_label: 'Riverside Park',
+            dates: [{ local_date: 1, games: [make_game_view({ league: 'Spring League' })] }],
+          },
+        ],
+      });
+      const { component, queries, settle } = render({
+        list_games: (query) => of(query.league ? spring : GAMES_RESULT),
+      });
+      await settle();
+
+      component.filters.update((filters) => ({ ...filters, league: 'Spring League' }));
+      await settle();
+
+      const sent = queries();
+      expect(sent).toHaveLength(3);
+      expect(sent.filter((query) => query.league === 'Spring League')).toHaveLength(1);
+      expect(sent.filter((query) => query.league === undefined)).toHaveLength(2);
+      expect(component.facet_options().league).toEqual(['Fall League', 'Spring League']);
+      expect(component.shown_count()).toBe(1);
+    });
+
+    it('remembers the scope and starts from it next time', async () => {
+      const first = render();
+      await first.settle();
+      first.component.filters.update((filters) => ({ ...filters, scope: GamesScope.ALL }));
+      await first.settle();
+      expect(localStorage.getItem(LAST_SCOPE_STORAGE_KEY)).toBe('ALL');
+      TestBed.resetTestingModule();
+
+      const second = render();
+      await second.settle();
+
+      expect(second.component.filters().scope).toBe(GamesScope.ALL);
+      expect(second.queries()[0].scope).toBe('ALL');
+    });
+
+    it('keeps the previous list, dimmed and marked busy, while the next one loads', async () => {
+      const next = new Subject<IGamesResult>();
+      let first = true;
+      const { fixture, component, element, by_testid, settle } = render({
+        list_games: () => {
+          if (first) {
+            first = false;
+            return of(GAMES_RESULT);
+          }
+          return next;
+        },
+      });
+      await settle();
+
+      component.filters.update((filters) => ({ ...filters, search: 'lions' }));
+      // The second request never answers yet, so the app is not stable: let it start, then render.
+      await new Promise((resolve) => setTimeout(resolve));
+      fixture.detectChanges();
+
+      const list = by_testid('games-list');
+      expect(list?.getAttribute('aria-busy')).toBe('true');
+      expect(list?.classList).toContain('games-page__results--busy');
+      expect(by_testid('games-loading')).toBeNull();
+      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+
+      next.next(EMPTY_GAMES_RESULT);
+      next.complete();
+      await settle();
+
+      expect(by_testid('games-list')).toBeNull();
+    });
+  });
+
+  describe('notices and empty states', () => {
+    it('warns when the list was cut off, with the number shown', async () => {
+      const { by_testid, settle } = render({
+        list_games: () => of({ ...GAMES_RESULT, truncated: true }),
+      });
+      await settle();
+
+      expect(by_testid('games-truncated')?.textContent).toContain(
+        'Showing the first 4 games — narrow your filters to see the rest.',
+      );
+    });
+
+    it('does not warn when the list is complete', async () => {
+      const { by_testid, settle } = render();
+      await settle();
+
+      expect(by_testid('games-truncated')).toBeNull();
+    });
+
+    it('says no games match when filters are on, and clearing them keeps the scope', async () => {
+      const { component, by_testid, element, queries, settle } = render({
+        list_games: (query) => of(query.search ? EMPTY_GAMES_RESULT : GAMES_RESULT),
+      });
+      await settle();
+      component.filters.update((filters) => ({
+        ...filters,
+        scope: GamesScope.MINE,
+        search: 'zebras',
+      }));
+      await settle();
+
+      expect(element.textContent).toContain('No games match your filters');
+      expect(by_testid('games-count')?.textContent?.trim()).toBe('0 games');
+
+      by_testid('games-empty-clear')?.click();
+      await settle();
+
+      expect(component.filters().search).toBe('');
+      expect(component.filters().scope).toBe(GamesScope.MINE);
+      expect(queries()[queries().length - 1].scope).toBe('MINE');
+      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+    });
+
+    it.each([
+      [GamesScope.OPEN, 'There are no open games right now.'],
+      [GamesScope.MINE, 'You are not assigned to any upcoming games.'],
+      [GamesScope.ALL, 'Sync a connection to bring in games from your assignors.'],
+    ])(
+      'says there are no games yet for scope %s, and points to Connections',
+      async (scope, text) => {
+        localStorage.setItem(LAST_SCOPE_STORAGE_KEY, scope);
+        const { element, by_testid, router, settle } = render({
+          list_games: () => of(EMPTY_GAMES_RESULT),
+        });
+        await settle();
+
+        expect(element.textContent).toContain('No games yet');
+        expect(element.textContent).toContain(text);
+        by_testid('games-empty-connections')?.click();
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/connections');
+      },
+    );
+  });
+
+  describe('errors', () => {
+    it('shows an error state with a retry, logging the real error', async () => {
+      const failure = http_error(500, 'INTERNAL');
+      let fail = true;
+      const { element, by_testid, api, settle } = render({
+        list_games: () => (fail ? throwError(() => failure) : of(GAMES_RESULT)),
+      });
+      await settle();
+
+      expect(element.textContent).toContain('Games could not be loaded');
+      expect(element.querySelector('app-game-location-card')).toBeNull();
+      expect(logged).toHaveBeenCalledWith('Could not load the games', expect.anything());
+
+      fail = false;
+      by_testid('games-retry')?.click();
+      await settle();
+
+      expect(api.list_games).toHaveBeenCalledTimes(2);
+      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+    });
+
+    it('asks a platform administrator to choose a tenant', async () => {
+      const { element, settle } = render({
+        list_games: () => throwError(() => http_error(400, 'TENANT_REQUIRED')),
+      });
+      await settle();
+
+      expect(element.textContent).toContain('Choose a tenant first');
+    });
+
+    it('explains refused filters, and clearing them is the action', async () => {
+      const { component, element, by_testid, settle } = render({
+        list_games: (query) =>
+          query.search ? throwError(() => http_error(400, 'VALIDATION_ERROR')) : of(GAMES_RESULT),
+      });
+      await settle();
+      component.filters.update((filters) => ({ ...filters, search: 'x'.repeat(10) }));
+      await settle();
+
+      expect(element.textContent).toContain('Those filters cannot be used');
+      expect(by_testid('games-error-clear')?.textContent).toContain('Clear filters');
+
+      by_testid('games-error-clear')?.click();
+      await settle();
+
+      expect(component.filters().search).toBe('');
+      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+    });
+
+    it('offers no action for a refused role', async () => {
+      const { element, by_testid, settle } = render({
+        list_games: () => throwError(() => http_error(403, 'PERMISSION_REQUIRED')),
+      });
+      await settle();
+
+      expect(element.textContent).toContain('You do not have access to games');
+      expect(by_testid('games-retry')).toBeNull();
+      expect(by_testid('games-error-clear')).toBeNull();
+    });
+
+    it('logs a failure to load the filter options without breaking the list', async () => {
+      const { component, element, settle } = render({
+        list_games: (query) =>
+          query.league ? of(GAMES_RESULT) : throwError(() => http_error(500, 'INTERNAL')),
+      });
+      await settle();
+      expect(element.textContent).toContain('Games could not be loaded');
+
+      component.filters.update((filters) => ({ ...filters, league: 'Fall League' }));
+      await settle();
+
+      expect(logged).toHaveBeenCalledWith('Could not load the filter options', expect.anything());
+      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+    });
+  });
+});

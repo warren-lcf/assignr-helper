@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.games-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+// The controls take a row of their own below the search and its clear button, side by side where there is room.
+.games-filters__controls {
+  order: 1;
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.games-filters__facet {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+.games-filters__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.games-filters__toggle {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+}
+
+// On a phone the same controls sit in an expansion panel, one per line with a real gap.
+.games-filters__panel {
+  width: 100%;
+
+  .games-filters__facet {
+    display: block;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .games-filters__toggles {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+// "Clear filters" is a text button of its own: the filter bar's is an icon-only 40px button, below the
+// 44px touch target and without a visible label (upstream gap). The bar's own button is hidden so there
+// are not two.
+:host ::ng-deep .filter_bar_clear_button {
+  display: none;
+}
+
+.games-filters__actions {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    flex-shrink: 0;
+    min-height: 48px;
+    white-space: nowrap;
+  }
+}

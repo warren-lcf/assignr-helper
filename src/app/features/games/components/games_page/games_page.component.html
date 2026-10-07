@@ -1,0 +1,103 @@
+<hch-page-container
+  [title]="t('Games')"
+  icon="sports_soccer"
+  [subtitle]="t('Upcoming games across your assignors')"
+>
+  @if (is_loading()) {
+    <div
+      class="games-page__loading"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading games')"
+      data-testid="games-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <mat-card appearance="outlined" class="games-page__skeleton-card">
+          <hch-skeleton-line width="40%" height="24px"></hch-skeleton-line>
+          <hch-skeleton-line height="64px" [repeat_count]="3" gap="12px"></hch-skeleton-line>
+        </mat-card>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Games could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="games-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to games')"
+      [description]="t('Ask a tenant owner to give your role access to games.')"
+      data-testid="games-no-access"
+    ></hch-empty-state>
+  } @else {
+    <app-games-filters [(filters)]="filters" [facet_options]="facet_options()"></app-games-filters>
+
+    @if (load_error(); as error) {
+      <hch-empty-state
+        icon="error"
+        [headline]="error.headline"
+        [description]="error.description"
+        [action_label]="error_action_label()"
+        [action_testid]="error_action_testid()"
+        (action_clicked)="on_error_action()"
+      ></hch-empty-state>
+    } @else {
+      <p class="games-page__count" role="status" aria-live="polite" data-testid="games-count">
+        {{ count_text() }}
+      </p>
+
+      @if (is_truncated()) {
+        <div class="games-page__notice" role="note" data-testid="games-truncated">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          <span>
+            {{
+              t('Showing the first {{count}}
+            games — narrow your filters to see the rest.', { count: shown_count_text(), }) }}
+          </span>
+        </div>
+      }
+
+      @if (shown_count() === 0) {
+        @if (has_filters()) {
+          <hch-empty-state
+            icon="search_off"
+            [headline]="t('No games match your filters')"
+            [description]="t('Try different search words, or clear the filters to see every game.')"
+            [action_label]="t('Clear filters')"
+            action_testid="games-empty-clear"
+            (action_clicked)="clear_filters()"
+          ></hch-empty-state>
+        } @else {
+          <hch-empty-state
+            icon="sports_soccer"
+            [headline]="t('No games yet')"
+            [description]="empty_description()"
+            [action_label]="t('Go to Connections')"
+            action_testid="games-empty-connections"
+            (action_clicked)="go_to_connections()"
+          ></hch-empty-state>
+        }
+      } @else {
+        <div
+          class="games-page__results"
+          [class.games-page__results--busy]="is_refreshing()"
+          [attr.aria-busy]="is_refreshing()"
+          data-testid="games-list"
+        >
+          @for (
+            location of result()?.locations;
+            track location.location_label;
+            let index = $index
+          ) {
+            <app-game-location-card [location]="location" [index]="index"></app-game-location-card>
+          }
+        </div>
+      }
+    }
+  }
+</hch-page-container>

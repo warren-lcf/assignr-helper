@@ -1,0 +1,64 @@
+<div
+  class="game-row"
+  [class.game-row--cancelled]="is_cancelled()"
+  [attr.data-testid]="'game-row-' + game().game_id"
+>
+  <p class="game-row__time" [attr.data-testid]="'game-time-' + game().game_id">
+    {{ game().start_at | hchUserDate: time_format }}
+  </p>
+
+  <div class="game-row__body">
+    <p class="game-row__title" [attr.data-testid]="'game-title-' + game().game_id">
+      {{ title() }}
+    </p>
+
+    @if (game().venue_name; as venue_name) {
+      <p class="game-row__meta">
+        <mat-icon aria-hidden="true">place</mat-icon>
+        <span class="visually-hidden">{{ t('Venue') }}:</span>
+        <span>{{ venue_name }}</span>
+      </p>
+    }
+    @if (game().organization_name; as organization_name) {
+      <p class="game-row__meta">
+        <mat-icon aria-hidden="true">groups</mat-icon>
+        <span class="visually-hidden">{{ t('Organization') }}:</span>
+        <span>{{ organization_name }}</span>
+      </p>
+    }
+
+    @if (tags().length > 0) {
+      <div class="game-row__chips" role="group" [attr.aria-label]="t('Game details')">
+        @for (tag of tags(); track tag) {
+          <hch-status-chip [label]="tag" [tone]="tone.NEUTRAL" compact></hch-status-chip>
+        }
+      </div>
+    }
+
+    <div class="game-row__chips" role="group" [attr.aria-label]="t('Game status')">
+      @if (is_cancelled()) {
+        <hch-status-chip
+          [label]="t('Cancelled')"
+          [tone]="tone.ERROR"
+          icon="cancel"
+          [attr.data-testid]="'game-cancelled-' + game().game_id"
+        ></hch-status-chip>
+      } @else {
+        <hch-status-chip
+          [label]="slots_text()"
+          [tone]="has_open_slots() ? tone.INFO : tone.NEUTRAL"
+          [icon]="has_open_slots() ? 'event_seat' : 'task_alt'"
+          [attr.data-testid]="'game-slots-' + game().game_id"
+        ></hch-status-chip>
+      }
+      @if (game().is_mine) {
+        <hch-status-chip
+          [label]="mine_label()"
+          [tone]="tone.SUCCESS"
+          icon="person"
+          [attr.data-testid]="'game-mine-' + game().game_id"
+        ></hch-status-chip>
+      }
+    </div>
+  </div>
+</div>
