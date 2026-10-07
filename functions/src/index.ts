@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { create_lazy_handler } from './http/create_lazy_handler.js';
 import { create_production_app } from './production_app.js';
 import { create_production_context } from './production_context.js';
 import { run_scheduled_sync } from './sync/scheduled_sync.js';
@@ -9,11 +10,13 @@ initializeApp();
 
 /**
  * The single HTTPS function serving every `/api/**` route. Hosting rewrites
- * `/api/**` to it; the browser never calls a vendor API directly.
+ * `/api/**` to it; the browser never calls a vendor API directly. The app is built
+ * on the first request because the Firebase CLI imports this module during deploy
+ * analysis, before it has applied `functions/.env.<project>`.
  */
 export const assignr_helper_api = onRequest(
   { memory: '512MiB', region: 'us-east4' },
-  create_production_app(),
+  create_lazy_handler(() => create_production_app()),
 );
 
 /**
