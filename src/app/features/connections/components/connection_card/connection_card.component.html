@@ -1,0 +1,115 @@
+<mat-card
+  class="connection-card"
+  [attr.data-testid]="'connection-card-' + connection().connection_id"
+>
+  <hch-card-header
+    [title]="account_name()"
+    [subtitle]="provider_label()"
+    [heading_level]="3"
+  ></hch-card-header>
+
+  <mat-card-content>
+    <hch-status-chip
+      [label]="t(status().label)"
+      [tone]="status().tone"
+      [icon]="status().icon"
+      [attr.data-testid]="'connection-status-' + connection().connection_id"
+    ></hch-status-chip>
+
+    <dl class="connection-card__facts">
+      <div class="connection-card__fact">
+        <dt>{{ t('Last synced') }}</dt>
+        <dd [attr.data-testid]="'connection-last-synced-' + connection().connection_id">
+          @if (connection().last_sync_at !== null) {
+            {{ connection().last_sync_at | hchUserDate }}
+          } @else {
+            {{ t('Never') }}
+          }
+        </dd>
+      </div>
+    </dl>
+
+    @if (connection().last_error; as last_error) {
+      <p
+        class="connection-card__error"
+        [attr.data-testid]="'connection-error-' + connection().connection_id"
+      >
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>
+          <span class="connection-card__error-label">{{ t('Last error') }}:</span>
+          {{ last_error }}
+        </span>
+      </p>
+    }
+  </mat-card-content>
+
+  @if (has_actions()) {
+    <mat-card-actions align="end" class="connection-card__actions">
+      @if (show_sync()) {
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="is_busy()"
+          [attr.aria-busy]="busy_action() === connection_action.SYNC"
+          [attr.aria-label]="t('Sync now: {{label}}', { label: account_name() })"
+          [attr.data-testid]="'connection-sync-' + connection().connection_id"
+          (click)="sync_requested.emit(connection())"
+        >
+          @if (busy_action() === connection_action.SYNC) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="18"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+          }
+          {{ t('Sync now') }}
+        </button>
+      }
+      @if (show_test_and_disconnect()) {
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="is_busy()"
+          [attr.aria-busy]="busy_action() === connection_action.TEST"
+          [attr.aria-label]="t('Test connection: {{label}}', { label: account_name() })"
+          [attr.data-testid]="'connection-test-' + connection().connection_id"
+          (click)="test_requested.emit(connection())"
+        >
+          @if (busy_action() === connection_action.TEST) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="18"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+          }
+          {{ t('Test connection') }}
+        </button>
+      }
+      @if (can_manage()) {
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="is_busy()"
+          [attr.aria-label]="t('Replace credentials: {{label}}', { label: account_name() })"
+          [attr.data-testid]="'connection-replace-' + connection().connection_id"
+          (click)="replace_requested.emit(connection())"
+        >
+          {{ t('Replace credentials') }}
+        </button>
+      }
+      @if (show_test_and_disconnect()) {
+        <button
+          mat-button
+          type="button"
+          class="connection-card__disconnect"
+          [disabled]="is_busy()"
+          [attr.aria-label]="t('Disconnect: {{label}}', { label: account_name() })"
+          [attr.data-testid]="'connection-disconnect-' + connection().connection_id"
+          (click)="disconnect_requested.emit(connection())"
+        >
+          {{ t('Disconnect') }}
+        </button>
+      }
+    </mat-card-actions>
+  }
+</mat-card>

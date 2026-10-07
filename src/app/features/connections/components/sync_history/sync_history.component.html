@@ -1,0 +1,63 @@
+<mat-card class="sync-history" data-testid="sync-history">
+  <hch-card-header
+    [title]="t('Sync history')"
+    [subtitle]="selected_name()"
+    icon="history"
+    [heading_level]="2"
+  ></hch-card-header>
+
+  <mat-card-content>
+    @if (connections().length > 1) {
+      <mat-form-field appearance="outline" class="sync-history__select" subscriptSizing="dynamic">
+        <mat-label>{{ t('Connection') }}</mat-label>
+        <mat-select
+          [value]="selected_connection_id()"
+          (selectionChange)="select_connection($event.value)"
+          data-testid="sync-history-connection-select"
+        >
+          @for (connection of connections(); track connection.connection_id) {
+            <mat-option [value]="connection.connection_id">
+              {{ connection.account_label ?? t('Unnamed account') }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    @if (load_failed()) {
+      <hch-empty-state
+        icon="error"
+        [headline]="t('Sync history could not be loaded')"
+        [description]="t('Check your connection and try again.')"
+        [action_label]="t('Try again')"
+        action_testid="sync-history-retry"
+        (action_clicked)="retry()"
+      ></hch-empty-state>
+    } @else {
+      <hch-data-table
+        class="sync-history__table"
+        data-testid="sync-history-table"
+        [rows]="run_rows()"
+        [columns]="columns()"
+        [is_loading]="runs.isLoading()"
+        [stack_mode]="stack_mode"
+        [stack_below_px]="stack_below_px"
+        [aria_label]="t('Recent sync runs')"
+        empty_icon="history"
+        [empty_headline]="t('No sync runs yet')"
+        [empty_description]="t('Runs appear here after the first sync.')"
+      >
+        <ng-template hchDataTableCell="status" let-row>
+          <hch-status-chip
+            [label]="t(status_of(as_run(row)).label)"
+            [tone]="status_of(as_run(row)).tone"
+            [icon]="status_of(as_run(row)).icon"
+          ></hch-status-chip>
+        </ng-template>
+        <ng-template hchDataTableCell="started_at" let-row>
+          {{ as_run(row).started_at | hchUserDate }}
+        </ng-template>
+      </hch-data-table>
+    }
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.connections-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.connections-page__history {
+  margin-top: 24px;
+}

@@ -1,0 +1,69 @@
+<hch-page-container
+  [title]="t('Connections')"
+  icon="sync_alt"
+  [subtitle]="t('Assignor accounts linked to your referee account')"
+  [header_actions]="header_actions()"
+>
+  @if (is_loading()) {
+    <div
+      class="connections-page__grid"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading connections')"
+      data-testid="connections-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-card [line_count]="4"></hch-skeleton-card>
+      }
+    </div>
+  } @else if (load_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="
+        needs_tenant() ? t('Choose a tenant first') : t('Connections could not be loaded')
+      "
+      [description]="
+        needs_tenant()
+          ? t('Pick the tenant to act in from the header, then try again.')
+          : t('Check your connection and try again.')
+      "
+      [action_label]="t('Try again')"
+      action_testid="connections-retry"
+      (action_clicked)="reload()"
+    ></hch-empty-state>
+  } @else if (connection_list().length === 0) {
+    <hch-empty-state
+      icon="link"
+      [headline]="t('Connect your first assignor')"
+      [description]="
+        can_manage()
+          ? t('Link your Assignr account to see its games here. Your credentials stay write-only.')
+          : t('No assignor is connected yet. Ask a tenant owner to add one.')
+      "
+      [action_label]="can_manage() ? t('Add connection') : undefined"
+      action_testid="connections-empty-add"
+      (action_clicked)="on_add_requested()"
+    ></hch-empty-state>
+  } @else {
+    <div class="connections-page__grid" data-testid="connections-list">
+      @for (connection of connection_list(); track connection.connection_id) {
+        <app-connection-card
+          [connection]="connection"
+          [can_manage]="can_manage()"
+          [can_sync]="can_sync()"
+          [busy_action]="busy_action_for(connection)"
+          (sync_requested)="on_sync_requested($event)"
+          (test_requested)="on_test_requested($event)"
+          (replace_requested)="on_replace_requested($event)"
+          (disconnect_requested)="on_disconnect_requested($event)"
+        ></app-connection-card>
+      }
+    </div>
+
+    <app-sync-history
+      class="connections-page__history"
+      [connections]="connection_list()"
+      [refresh_token]="history_refresh_token()"
+    ></app-sync-history>
+  }
+</hch-page-container>
