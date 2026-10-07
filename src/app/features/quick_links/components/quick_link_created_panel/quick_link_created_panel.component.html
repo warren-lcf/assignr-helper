@@ -1,0 +1,51 @@
+<div class="created-panel">
+  <p class="created-panel__warning" role="note" data-testid="quick-link-created-warning">
+    <mat-icon aria-hidden="true">warning</mat-icon>
+    <span>
+      <strong>{{ t('Copy this link now.') }}</strong>
+      {{
+        t(
+          'It will not be shown again. Anyone who has it can see your open games until you revoke it.'
+        )
+      }}
+    </span>
+  </p>
+
+  <div class="created-panel__copy">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="created-panel__field">
+      <mat-label>{{ t('Quick link') }}</mat-label>
+      <input
+        matInput
+        type="text"
+        readonly
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        [value]="url()"
+        (focus)="select_all($event)"
+        (click)="select_all($event)"
+        data-testid="quick-link-created-url"
+      />
+    </mat-form-field>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="created-panel__button"
+      data-testid="quick-link-created-copy"
+      (click)="copy()"
+    >
+      <mat-icon aria-hidden="true">content_copy</mat-icon>
+      {{ t('Copy link') }}
+    </button>
+  </div>
+
+  <p
+    class="created-panel__status"
+    role="status"
+    aria-live="polite"
+    data-testid="quick-link-copy-status"
+  >
+    {{ status_text() }}
+  </p>
+</div>

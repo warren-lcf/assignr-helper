@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+.quick-links-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.quick-links-page__count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+  font-variant-numeric: tabular-nums;
+}

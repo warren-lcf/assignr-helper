@@ -48,6 +48,22 @@ describe('AppComponent', () => {
     expect(fixture.componentInstance.show_chrome()).toBe(false);
   });
 
+  it('shows no chrome on the public quick link page either', async () => {
+    const { router } = make_app();
+    const fixture = TestBed.createComponent(AppComponent);
+    await router.navigateByUrl('/q/some-token');
+
+    expect(fixture.componentInstance.show_chrome()).toBe(false);
+  });
+
+  it('does not mistake a similar path for the quick link page', async () => {
+    const { router } = make_app();
+    const fixture = TestBed.createComponent(AppComponent);
+    await router.navigateByUrl('/quick-links');
+
+    expect(fixture.componentInstance.show_chrome()).toBe(true);
+  });
+
   it('builds the sidebar from the navigation definitions', () => {
     make_app();
     const fixture = TestBed.createComponent(AppComponent);

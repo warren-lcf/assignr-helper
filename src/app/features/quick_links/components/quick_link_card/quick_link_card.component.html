@@ -1,0 +1,81 @@
+<mat-card class="quick-link-card" [attr.data-testid]="'quick-link-card-' + link().link_id">
+  <hch-card-header [title]="label()" [heading_level]="3"></hch-card-header>
+
+  <mat-card-content>
+    <hch-status-chip
+      [label]="t(state().label)"
+      [tone]="state().tone"
+      [icon]="state().icon"
+      [attr.data-testid]="'quick-link-state-' + link().link_id"
+    ></hch-status-chip>
+
+    <ul
+      class="quick-link-card__scope"
+      [attr.aria-label]="t('What this link shows')"
+      [attr.data-testid]="'quick-link-scope-' + link().link_id"
+    >
+      @for (line of scope_lines(); track line) {
+        <li>{{ line }}</li>
+      }
+    </ul>
+
+    <dl class="quick-link-card__facts">
+      <div class="quick-link-card__fact">
+        <dt>{{ t('Expires') }}</dt>
+        <dd [attr.data-testid]="'quick-link-expires-' + link().link_id">
+          @if (link().expires_at !== null) {
+            {{ link().expires_at | hchUserDate: date_time_format }}
+          } @else {
+            {{ t('Never') }}
+          }
+        </dd>
+      </div>
+      @if (link().revoked_at !== null) {
+        <div class="quick-link-card__fact">
+          <dt>{{ t('Revoked') }}</dt>
+          <dd [attr.data-testid]="'quick-link-revoked-' + link().link_id">
+            {{ link().revoked_at | hchUserDate: date_time_format }}
+          </dd>
+        </div>
+      }
+      <div class="quick-link-card__fact">
+        <dt>{{ t('Last viewed') }}</dt>
+        <dd [attr.data-testid]="'quick-link-last-viewed-' + link().link_id">
+          @if (link().last_viewed_at !== null) {
+            {{ link().last_viewed_at | hchUserDate: date_time_format }}
+          } @else {
+            {{ t('Never') }}
+          }
+        </dd>
+      </div>
+      <div class="quick-link-card__fact">
+        <dt>{{ t('Views') }}</dt>
+        <dd [attr.data-testid]="'quick-link-views-' + link().link_id">{{ view_count_text() }}</dd>
+      </div>
+    </dl>
+  </mat-card-content>
+
+  @if (show_revoke()) {
+    <mat-card-actions align="end" class="quick-link-card__actions">
+      <button
+        mat-stroked-button
+        type="button"
+        class="quick-link-card__revoke"
+        [disabled]="is_busy() || is_locked()"
+        [attr.aria-busy]="is_busy()"
+        [attr.aria-label]="t('Revoke {{label}}', { label: label() })"
+        [attr.data-testid]="'quick-link-revoke-' + link().link_id"
+        (click)="revoke_requested.emit(link())"
+      >
+        @if (is_busy()) {
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="18"
+            aria-hidden="true"
+          ></mat-progress-spinner>
+        }
+        {{ t('Revoke') }}
+      </button>
+    </mat-card-actions>
+  }
+</mat-card>

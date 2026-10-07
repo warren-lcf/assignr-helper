@@ -1,0 +1,126 @@
+@if (link_url(); as url) {
+  <h2 mat-dialog-title>{{ t('Your quick link') }}</h2>
+
+  <mat-dialog-content>
+    <app-quick-link-created-panel [url]="url"></app-quick-link-created-panel>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-flat-button type="button" data-testid="quick-link-created-done" (click)="done()">
+      {{ t('Done') }}
+    </button>
+  </mat-dialog-actions>
+} @else {
+  <h2 mat-dialog-title>{{ t('Create quick link') }}</h2>
+
+  <form [formRoot]="form" class="create-link">
+    <mat-dialog-content>
+      <p class="create-link__intro">
+        {{
+          t(
+            'Anyone with the link can see your open games, live, without signing in. Fees and organization names are never shown. Everything below is optional.'
+          )
+        }}
+      </p>
+
+      <div class="create-link__fields">
+        <hch-tag-chip-input
+          [label]="t('Only these levels')"
+          [placeholder]="t('Type a level and press Enter')"
+          [hint]="t('Leave empty to show every level')"
+          [value]="model().levels"
+          (valueChange)="on_levels_changed($event)"
+          data-testid="create-link-levels"
+        ></hch-tag-chip-input>
+        @if (form.levels().errors()[0]; as error) {
+          <p class="create-link__error" role="alert" data-testid="create-link-levels-error">
+            {{ error.message }}
+          </p>
+        }
+
+        <div class="create-link__dates">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ t('First date') }}</mat-label>
+            <input
+              matInput
+              autocomplete="off"
+              [matDatepicker]="start_picker"
+              [formField]="form.date_start"
+              data-testid="create-link-date-start"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="start_picker"></mat-datepicker-toggle>
+            <mat-datepicker #start_picker></mat-datepicker>
+            @if (form.date_start().errors()[0]; as error) {
+              <mat-error>{{ error.message }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ t('Last date') }}</mat-label>
+            <input
+              matInput
+              autocomplete="off"
+              [matDatepicker]="end_picker"
+              [formField]="form.date_end"
+              data-testid="create-link-date-end"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="end_picker"></mat-datepicker-toggle>
+            <mat-datepicker #end_picker></mat-datepicker>
+            @if (form.date_end().errors()[0]; as error) {
+              <mat-error>{{ error.message }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ t('Expires') }}</mat-label>
+          <mat-select [formField]="form.expiry" data-testid="create-link-expiry">
+            @for (option of expiry_options(); track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+          @if (form.expiry().errors()[0]; as error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      @if (form_error(); as message) {
+        <p class="create-link__error" role="alert" data-testid="create-link-form-error">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button
+        mat-button
+        type="button"
+        mat-dialog-close
+        [disabled]="form().submitting()"
+        data-testid="create-link-cancel"
+      >
+        {{ t('Cancel') }}
+      </button>
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="form().submitting()"
+        [attr.aria-busy]="form().submitting()"
+        data-testid="create-link-submit"
+      >
+        @if (form().submitting()) {
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="18"
+            aria-hidden="true"
+          ></mat-progress-spinner>
+          {{ t('Creating') }}
+        } @else {
+          {{ t('Create link') }}
+        }
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

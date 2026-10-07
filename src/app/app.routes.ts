@@ -1,7 +1,8 @@
-import { Type } from '@angular/core';
+import { Type, inject } from '@angular/core';
 import { Route, Routes } from '@angular/router';
 import { NAV_DEFINITIONS } from './core/constants/nav_definitions.constant';
 import { auth_guard } from './core/guards/auth_guard';
+import { AppTranslationService } from './core/services/translation/app_translation.service';
 
 const landing_path = NAV_DEFINITIONS[0].path;
 
@@ -20,6 +21,10 @@ const feature_loaders: Readonly<Record<string, () => Promise<Type<unknown>>>> = 
     import('./features/connections/components/connections_page/connections_page.component').then(
       (module) => module.ConnectionsPageComponent,
     ),
+  'quick-links': () =>
+    import('./features/quick_links/components/quick_links_page/quick_links_page.component').then(
+      (module) => module.QuickLinksPageComponent,
+    ),
 };
 
 /** Each nav entry gets a guarded route; the placeholder is swapped for the real feature as it is built. */
@@ -36,6 +41,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./core/components/login/login.component').then((module) => module.LoginComponent),
     data: { breadcrumb: 'Sign in' },
+  },
+  {
+    // Public and chromeless like the sign-in page: opened by anyone holding a quick link, no auth_guard.
+    path: 'q/:token',
+    loadComponent: () =>
+      import('./features/public_quick_link/components/public_quick_link_page/public_quick_link_page.component').then(
+        (module) => module.PublicQuickLinkPageComponent,
+      ),
+    title: () => inject(AppTranslationService).translate('Games available'),
   },
   { path: '', pathMatch: 'full', redirectTo: landing_path },
   ...feature_routes,
