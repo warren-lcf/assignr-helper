@@ -1,5 +1,6 @@
 import { GameStatus } from '../../integrations/enums/game_status.enum.js';
 import { IGameListItem } from './game_list_item.model.js';
+import { IGameSlotView } from './game_slot_view.model.js';
 
 /**
  * A stored game as the games list shows it: provider-neutral, with the venue and
@@ -23,6 +24,8 @@ export interface IGameView extends IGameListItem {
   is_mine: boolean;
   /** Number of officiating positions, filled or not. */
   total_slot_count: number;
+  /** Every officiating position in game order, each open, filled or held by the account. */
+  slots: IGameSlotView[];
   /** Position the connected account holds on this game, when it holds one. */
   my_position: string | null;
 }

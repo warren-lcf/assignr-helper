@@ -22,6 +22,8 @@ export interface IQuickLinkGameSource {
   home_team: string | null;
   away_team: string | null;
   open_slot_count: number;
+  /** Every position with whether it is still open; no assignee names. */
+  slots: { position: string; is_open: boolean }[];
   fee_minor: number | null;
   currency: string | null;
   /** Names of officials already assigned. Private. */

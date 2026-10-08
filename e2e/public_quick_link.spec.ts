@@ -28,6 +28,7 @@ interface IMockGame {
   home_team: string | null;
   away_team: string | null;
   open_slot_count: number;
+  slots: { position: string; is_open: boolean }[];
   fee_minor: null;
   currency: null;
 }
@@ -44,6 +45,10 @@ function make_game(game_id: string, overrides: Partial<IMockGame>): IMockGame {
     home_team: 'Lions',
     away_team: 'Tigers',
     open_slot_count: 1,
+    slots: [
+      { position: 'Asst. Referee', is_open: false },
+      { position: 'Referee', is_open: true },
+    ],
     fee_minor: null,
     currency: null,
     ...overrides,
@@ -60,6 +65,11 @@ function make_dataset(): IMockGame[] {
       away_team: 'Owls',
       level: 'Select',
       open_slot_count: 3,
+      slots: [
+        { position: 'Referee', is_open: true },
+        { position: 'Asst. Referee', is_open: true },
+        { position: 'Mentor', is_open: true },
+      ],
     }),
     make_game('g3', {
       local_date: SUNDAY,
@@ -67,6 +77,10 @@ function make_dataset(): IMockGame[] {
       home_team: 'Rams',
       away_team: 'Bulls',
       open_slot_count: 0,
+      slots: [
+        { position: 'Referee', is_open: false },
+        { position: 'Asst. Referee', is_open: false },
+      ],
     }),
     make_game('g4', {
       location_group: 'Lakeside Fields',
@@ -76,6 +90,10 @@ function make_dataset(): IMockGame[] {
       league: 'Spring League',
       level: 'Recreational',
       open_slot_count: 2,
+      slots: [
+        { position: 'Referee', is_open: true },
+        { position: 'Assistant referee 1', is_open: true },
+      ],
       venue_name: 'Pitch 1',
     }),
     make_game('g5', {
@@ -335,6 +353,27 @@ test.describe('public quick link page', () => {
     // A signed-out visitor sends no Authorization header, to the API or anywhere.
     expect(api.requests).toHaveLength(1);
     for (const { headers } of api.all_api_headers) expect(headers['authorization']).toBeUndefined();
+
+    await assert_settled_layout_is_sound(page);
+  });
+
+  test('names which positions are open and which are filled, without saying who holds them', async ({
+    page,
+  }) => {
+    await install_api_mock(page);
+    await open_public(page);
+
+    await expect(page.getByTestId('public-game-position-g2-0')).toContainText('Referee: Open');
+    await expect(page.getByTestId('public-game-position-g2-1')).toContainText(
+      'Asst. Referee: Open',
+    );
+    await expect(page.getByTestId('public-game-position-g2-2')).toContainText('Mentor: Open');
+    // One open of two: the open position is listed first, the filled one after it.
+    await expect(page.getByTestId('public-game-position-g1-0')).toContainText('Referee: Open');
+    await expect(page.getByTestId('public-game-position-g1-1')).toContainText(
+      'Asst. Referee: Filled',
+    );
+    await expect(page.getByTestId('public-list')).not.toContainText(/Yours/);
 
     await assert_settled_layout_is_sound(page);
   });

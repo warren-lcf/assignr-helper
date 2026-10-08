@@ -58,7 +58,9 @@ describe('PublicGameRowComponent', () => {
   });
 
   it('leaves out the venue and the tags a game does not have', () => {
-    const { element } = render(make_public_game({ venue_name: null, level: null, league: ' ' }));
+    const { element } = render(
+      make_public_game({ venue_name: null, level: null, league: ' ', slots: [] }),
+    );
 
     expect(element.querySelector('.game-row__meta')).toBeNull();
     expect(element.querySelectorAll('hch-status-chip')).toHaveLength(1);
@@ -76,5 +78,33 @@ describe('PublicGameRowComponent', () => {
     const { element } = render(make_public_game());
 
     expect(element.textContent).not.toMatch(/\$|fee/i);
+  });
+
+  it('names each position and whether it is open, listing open ones first', () => {
+    const { by_testid } = render(
+      make_public_game({
+        slots: [
+          { position: 'Asst. Referee', is_open: false },
+          { position: 'Referee', is_open: true },
+          { position: 'Mentor', is_open: true },
+        ],
+        open_slot_count: 2,
+      }),
+    );
+    const labels = [0, 1, 2].map(
+      (index) => by_testid(`public-game-position-g1-${index}`)?.textContent ?? '',
+    );
+
+    expect(labels[0]).toContain('Referee: Open');
+    expect(labels[1]).toContain('Mentor: Open');
+    expect(labels[2]).toContain('Asst. Referee: Filled');
+    expect(by_testid('public-game-positions-g1')?.getAttribute('aria-label')).toBe('Positions');
+  });
+
+  it('shows no position list when the server sent none', () => {
+    const { by_testid } = render(make_public_game({ slots: undefined }));
+
+    expect(by_testid('public-game-positions-g1')).toBeNull();
+    expect(by_testid('public-game-spots-g1')).not.toBeNull();
   });
 });

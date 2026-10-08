@@ -16,6 +16,25 @@
       </p>
     }
 
+    @if (slot_chips().length > 0) {
+      <div
+        class="game-row__chips"
+        role="group"
+        [attr.aria-label]="t('Positions')"
+        [attr.data-testid]="'public-game-positions-' + game().game_id"
+      >
+        @for (chip of slot_chips(); track $index) {
+          <hch-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon"
+            compact
+            [attr.data-testid]="'public-game-position-' + game().game_id + '-' + $index"
+          ></hch-status-chip>
+        }
+      </div>
+    }
+
     <div class="game-row__chips">
       @for (tag of tags(); track tag) {
         <hch-status-chip [label]="tag" [tone]="tone.NEUTRAL" compact></hch-status-chip>

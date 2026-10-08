@@ -205,6 +205,11 @@ describe('GET /api/games', () => {
       is_open: true,
       is_mine: false,
       open_slot_count: 1,
+      open_positions: ['Assistant Referee'],
+      slots: [
+        { position: 'Referee', state: 'MINE' },
+        { position: 'Assistant Referee', state: 'OPEN' },
+      ],
       total_slot_count: 2,
       my_position: 'Referee',
       fee_minor: null,

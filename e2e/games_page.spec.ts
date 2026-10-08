@@ -38,6 +38,7 @@ interface IMockGame {
   is_mine: boolean;
   open_slot_count: number;
   total_slot_count: number;
+  slots: { position: string; state: 'OPEN' | 'FILLED' | 'MINE' }[];
   my_position: string | null;
   fee_minor: null;
   currency: null;
@@ -69,6 +70,10 @@ function make_game(game_id: string, overrides: Partial<IMockGame>): IMockGame {
     is_mine: false,
     open_slot_count: 1,
     total_slot_count: 2,
+    slots: [
+      { position: 'Asst. Referee', state: 'FILLED' },
+      { position: 'Referee', state: 'OPEN' },
+    ],
     my_position: null,
     fee_minor: null,
     currency: null,
@@ -88,6 +93,11 @@ function make_dataset(): IMockGame[] {
       is_mine: true,
       open_slot_count: 0,
       total_slot_count: 3,
+      slots: [
+        { position: 'Center', state: 'MINE' },
+        { position: 'Asst. Referee', state: 'FILLED' },
+        { position: 'Asst. Referee', state: 'FILLED' },
+      ],
       my_position: 'Center',
       age_group: 'U14',
       level: 'Select',
@@ -110,6 +120,10 @@ function make_dataset(): IMockGame[] {
       level: 'Recreational',
       age_group: 'U10',
       open_slot_count: 2,
+      slots: [
+        { position: 'Referee', state: 'OPEN' },
+        { position: 'Assistant referee 1', state: 'OPEN' },
+      ],
       venue_name: 'Pitch 1',
     }),
     make_game('g5', {
@@ -124,6 +138,10 @@ function make_dataset(): IMockGame[] {
       is_open: false,
       is_mine: true,
       open_slot_count: 0,
+      slots: [
+        { position: 'Assistant referee 1', state: 'MINE' },
+        { position: 'Referee', state: 'FILLED' },
+      ],
       my_position: 'Assistant referee 1',
     }),
     make_game('g6', {
@@ -388,6 +406,24 @@ test.describe('games page', () => {
     await expect(page.getByTestId('game-row-g1')).toBeVisible();
     const searched = api.game_requests.slice(before).map((params) => params.get('search'));
     expect(searched).toEqual(['lions']);
+  });
+
+  test('names every position of a game and whether it is open, filled or yours', async ({
+    page,
+  }) => {
+    await install_api_mock(page);
+    await open_games(page);
+
+    const lakeside_open = page.getByTestId('game-positions-g4');
+    await expect(lakeside_open).toBeVisible();
+    await expect(page.getByTestId('game-position-g4-0')).toContainText('Referee: Open');
+    await expect(page.getByTestId('game-position-g4-1')).toContainText('Assistant referee 1: Open');
+    await expect(page.getByTestId('game-slots-g4')).toContainText('2 open of 2 slots');
+
+    await expect(page.getByTestId('game-position-g1-0')).toContainText('Referee: Open');
+    await expect(page.getByTestId('game-position-g1-1')).toContainText('Asst. Referee: Filled');
+
+    await assert_settled_layout_is_sound(page);
   });
 
   test('switches scope between open, my and all games', async ({ page }) => {

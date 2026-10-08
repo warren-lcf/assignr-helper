@@ -31,6 +31,7 @@ const GAME_KEYS = [
   'local_date',
   'location_group',
   'open_slot_count',
+  'slots',
   'start_at',
   'venue_name',
 ];

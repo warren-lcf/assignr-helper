@@ -5,6 +5,7 @@ import { IStoredGameSlot } from '../../sync/models/stored_game_slot.model.js';
 import { IStoredOrganization } from '../../sync/models/stored_organization.model.js';
 import { IStoredVenue } from '../../sync/models/stored_venue.model.js';
 import { make_contract_game } from '../../sync/stores/contracts/make_contract_game.js';
+import { GameSlotState } from './game_slot_state.enum.js';
 import { to_game_view } from './to_game_view.js';
 
 const venue: IStoredVenue = {
@@ -103,6 +104,8 @@ describe('to_game_view', () => {
       is_open: false,
       is_mine: true,
       open_slot_count: 1,
+      open_positions: ['Referee'],
+      slots: [{ position: 'Referee', state: GameSlotState.OPEN }],
       total_slot_count: 1,
       my_position: null,
       fee_minor: null,
@@ -171,5 +174,47 @@ describe('to_game_view', () => {
     expect(serialized).not.toContain('asg-1');
     expect(serialized).not.toContain('"raw"');
     expect(serialized).not.toContain('fees');
+  });
+
+  it("names every position and says whether it is open, filled or the account's own", () => {
+    const game = make_contract_game('t1', 'g1', {
+      slots: [
+        make_slot({ slot_id: 'slot_0', position: ' Referee ' }),
+        make_slot({
+          slot_id: 'slot_1',
+          position: 'Asst. Referee',
+          assignment_external_id: 'asg-1',
+          assignee_name: 'Pat Secret',
+        }),
+        make_slot({
+          slot_id: 'slot_2',
+          position: 'Asst. Referee',
+          assignment_external_id: 'asg-2',
+          is_mine: true,
+        }),
+        make_slot({ slot_id: 'slot_3', position: 'Mentor' }),
+      ],
+    });
+
+    const view = to_game_view(game, null, null);
+
+    expect(view.slots).toEqual([
+      { position: 'Referee', state: GameSlotState.OPEN },
+      { position: 'Asst. Referee', state: GameSlotState.FILLED },
+      { position: 'Asst. Referee', state: GameSlotState.MINE },
+      { position: 'Mentor', state: GameSlotState.OPEN },
+    ]);
+    expect(view.open_positions).toEqual(['Referee', 'Mentor']);
+    expect(view.open_slot_count).toBe(2);
+    expect(view.total_slot_count).toBe(4);
+    expect(JSON.stringify(view)).not.toContain('Pat Secret');
+  });
+
+  it('keeps an unnamed position as an empty name so the screen can label it', () => {
+    const game = make_contract_game('t1', 'g1', { slots: [make_slot({ position: '  ' })] });
+
+    expect(to_game_view(game, null, null).slots).toEqual([
+      { position: '', state: GameSlotState.OPEN },
+    ]);
   });
 });

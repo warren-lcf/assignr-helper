@@ -10,6 +10,7 @@ import { AppTranslationService } from '../../../../core/services/translation/app
 import { GameStatus } from '../../enums/game_status.enum';
 import { IGameView } from '../../models/game_view.model';
 import { format_game_title } from '../../utils/format_game_title';
+import { build_slot_chips } from '../../utils/build_slot_chips';
 import { format_open_slots } from '../../utils/format_open_slots';
 
 /**
@@ -47,6 +48,10 @@ export class GameRowComponent {
     format_open_slots(this.game(), (key, params) => this.t(key, params)),
   );
   public readonly has_open_slots = computed(() => this.game().open_slot_count > 0);
+  /** One chip per position, open ones first, naming the position and its state. */
+  public readonly slot_chips = computed(() =>
+    build_slot_chips(this.game().slots, (key, params) => this.t(key, params)),
+  );
   /** Level, league, age group, gender and game type, whichever the game has, as plain tags. */
   public readonly tags = computed<string[]>(() => {
     const game = this.game();
