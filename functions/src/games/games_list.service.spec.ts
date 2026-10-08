@@ -222,5 +222,16 @@ describe('GamesListService', () => {
         `g${String(GAMES_LIST_LIMITS.MAX_GAMES_PER_RESPONSE - 1).padStart(5, '0')}`,
       );
     });
+
+    it('lets a caller ask for a lower cap and keeps the soonest games', async () => {
+      const service = await service_with_games(10);
+
+      const result = await service.list_games('t1', make_request({ max_games: 3 }));
+
+      const returned = result.locations.flatMap((l) => l.dates.flatMap((d) => d.games));
+      expect(returned.map((game) => game.game_id)).toEqual(['g00000', 'g00001', 'g00002']);
+      expect(result.total).toBe(10);
+      expect(result.truncated).toBe(true);
+    });
   });
 });

@@ -12,7 +12,21 @@ import { FirebaseTokenVerifier } from './auth/firebase_token_verifier.js';
 import { IAppAuth } from './auth/models/app_auth.model.js';
 import { SpannerMembershipResolver } from './auth/spanner_membership_resolver.js';
 import { StaticRoleStore } from './auth/static_role_store.js';
+import { read_public_app_origin } from './config/read_public_app_origin.js';
 import { require_env } from './config/require_env.js';
+import { ContactService } from './contacts/contact.service.js';
+import { IContactStore } from './contacts/ports/contact_store.interface.js';
+import { SpannerContactStore } from './contacts/stores/spanner_contact_store.js';
+import { SendGridEmailSender } from './email_delivery/sendgrid_email_sender.js';
+import { DigestComposer } from './email_drafts/digest_composer.js';
+import { EmailDraftService } from './email_drafts/email_draft.service.js';
+import { EmailPreviewService } from './email_drafts/email_preview.service.js';
+import { EmailSendService } from './email_drafts/email_send.service.js';
+import { RecipientResolver } from './email_drafts/recipient_resolver.js';
+import { SpannerEmailDeliveryStore } from './email_drafts/stores/spanner_email_delivery_store.js';
+import { SpannerEmailDraftStore } from './email_drafts/stores/spanner_email_draft_store.js';
+import { EmailSettingsService } from './email_settings/email_settings.service.js';
+import { SecretManagerEmailSettingsVault } from './email_settings/secret_manager_email_settings_vault.js';
 import { GamesListService } from './games/games_list.service.js';
 import { ClientCredentialsTokenSource } from './connections/client_credentials_token_source.js';
 import { ConnectionAdminService } from './connections/connection_admin.service.js';
@@ -23,6 +37,9 @@ import { PublicQuickLinkService } from './quick_links/public_quick_link.service.
 import { IQuickLinkStore } from './quick_links/ports/quick_link_store.interface.js';
 import { QuickLinkService } from './quick_links/quick_link.service.js';
 import { SpannerQuickLinkStore } from './quick_links/stores/spanner_quick_link_store.js';
+import { GoogleSecretKeyBackend } from './unsubscribe/google_secret_key_backend.js';
+import { SecretManagerUnsubscribeKeys } from './unsubscribe/secret_manager_unsubscribe_keys.js';
+import { UnsubscribeService } from './unsubscribe/unsubscribe.service.js';
 import { AssignrAccountVerifier } from './integrations/assignr/assignr_account_verifier.js';
 import { AssignrTokenClient } from './integrations/assignr/assignr_token_client.js';
 import { AssignrSessionFactory } from './sync/assignr_session_factory.js';
@@ -44,6 +61,13 @@ export interface IProductionContext {
   quick_links: IQuickLinkStore;
   quick_link_service: QuickLinkService;
   public_quick_link_service: PublicQuickLinkService;
+  contacts: IContactStore;
+  contact_service: ContactService;
+  email_settings_service: EmailSettingsService;
+  email_draft_service: EmailDraftService;
+  email_preview_service: EmailPreviewService;
+  email_send_service: EmailSendService;
+  unsubscribe_service: UnsubscribeService;
 }
 
 /**
@@ -53,7 +77,9 @@ export interface IProductionContext {
  *
  * Each tenant's provider client credentials live in Secret Manager (one secret
  * per connection, written through the settings API); access tokens are requested
- * on demand and cached only in memory.
+ * on demand and cached only in memory. Each tenant's SendGrid key and sender details
+ * are likewise one secret per tenant. The key that signs unsubscribe links is a
+ * platform-level secret, created on first use. `PUBLIC_APP_ORIGIN` is required.
  * @param env Environment to read; defaults to `process.env`.
  * @returns The wired services.
  */
@@ -72,10 +98,13 @@ export function create_production_context(
   const organizations = new SpannerOrganizationStore(database);
   const venues = new SpannerVenueStore(database);
   const quick_links = new SpannerQuickLinkStore(database);
+  const contacts = new SpannerContactStore(database);
+  const email_drafts = new SpannerEmailDraftStore(database);
+  const email_deliveries = new SpannerEmailDeliveryStore(database);
+  const public_app_origin = read_public_app_origin(env);
 
-  const secrets = create_google_secret_manager_client({
-    project_id: require_env('SECRET_MANAGER_PROJECT_ID', env),
-  });
+  const secret_manager_project_id = require_env('SECRET_MANAGER_PROJECT_ID', env);
+  const secrets = create_google_secret_manager_client({ project_id: secret_manager_project_id });
   const vault = new SecretManagerCredentialVault(secrets);
   const token_client = new AssignrTokenClient();
   const token_source = new ClientCredentialsTokenSource({ vault, token_client });
@@ -84,6 +113,36 @@ export function create_production_context(
       database: database as unknown as ICommonSpannerDatabase,
     }),
   });
+
+  const games_service = new GamesListService({ games, venues, organizations, now: Date.now });
+  const quick_link_service = new QuickLinkService({
+    quick_links,
+    audit,
+    now: Date.now,
+    generate_id: randomUUID,
+  });
+  const email_settings_service = new EmailSettingsService({
+    vault: new SecretManagerEmailSettingsVault(secrets),
+    audit,
+  });
+  const unsubscribe_service = new UnsubscribeService({
+    keys: new SecretManagerUnsubscribeKeys({
+      backend: new GoogleSecretKeyBackend(secret_manager_project_id),
+    }),
+    contacts,
+    audit,
+    now: Date.now,
+  });
+  const email_draft_service = new EmailDraftService({
+    drafts: email_drafts,
+    contacts,
+    audit,
+    now: Date.now,
+    generate_id: randomUUID,
+  });
+  const recipients = new RecipientResolver(contacts);
+  const composer = new DigestComposer({ games_service, venues, now: Date.now });
+  const email_sender = new SendGridEmailSender();
 
   return {
     auth: {
@@ -103,7 +162,7 @@ export function create_production_context(
       now: Date.now,
       generate_id: randomUUID,
     }),
-    games_service: new GamesListService({ games, venues, organizations, now: Date.now }),
+    games_service,
     admin_service: new ConnectionAdminService({
       connections,
       vault,
@@ -114,17 +173,46 @@ export function create_production_context(
       generate_id: randomUUID,
     }),
     quick_links,
-    quick_link_service: new QuickLinkService({
-      quick_links,
-      audit,
-      now: Date.now,
-      generate_id: randomUUID,
-    }),
+    quick_link_service,
     public_quick_link_service: new PublicQuickLinkService({
       quick_links,
       games,
       venues,
       now: Date.now,
     }),
+    contacts,
+    contact_service: new ContactService({
+      contacts,
+      audit,
+      now: Date.now,
+      generate_id: randomUUID,
+    }),
+    email_settings_service,
+    email_draft_service,
+    email_preview_service: new EmailPreviewService({
+      draft_service: email_draft_service,
+      recipients,
+      composer,
+      settings: email_settings_service,
+      sender: email_sender,
+      audit,
+      public_app_origin,
+    }),
+    email_send_service: new EmailSendService({
+      draft_service: email_draft_service,
+      drafts: email_drafts,
+      deliveries: email_deliveries,
+      contacts,
+      recipients,
+      composer,
+      settings: email_settings_service,
+      sender: email_sender,
+      quick_links: quick_link_service,
+      unsubscribe: unsubscribe_service,
+      audit,
+      public_app_origin,
+      now: Date.now,
+    }),
+    unsubscribe_service,
   };
 }

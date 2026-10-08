@@ -70,7 +70,7 @@ export class QuickLinkService {
       revoked_at: null,
       last_viewed_at: null,
       view_count: 0,
-      email_draft_id: null,
+      email_draft_id: input.email_draft_id ?? null,
       created_at: now,
       created_by: actor.user_id,
       updated_at: now,

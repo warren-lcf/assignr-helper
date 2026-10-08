@@ -10,12 +10,14 @@ initializeApp();
 
 /**
  * The single HTTPS function serving every `/api/**` route. Hosting rewrites
- * `/api/**` to it; the browser never calls a vendor API directly. The app is built
+ * `/api/**` to it; the browser never calls a vendor API directly. The timeout is 300 seconds
+ * (the default is 60) because sending an email draft delivers up to 100 messages inside one
+ * request; the send stops delivering after 240 seconds and leaves the rest to a retry. The app is built
  * on the first request because the Firebase CLI imports this module during deploy
  * analysis, before it has applied `functions/.env.<project>`.
  */
 export const assignr_helper_api = onRequest(
-  { memory: '512MiB', region: 'us-east4' },
+  { memory: '512MiB', region: 'us-east4', timeoutSeconds: 300 },
   create_lazy_handler(() => create_production_app()),
 );
 

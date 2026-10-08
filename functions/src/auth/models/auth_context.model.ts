@@ -6,6 +6,8 @@
 export interface IAuthContext {
   uid: string;
   email: string | null;
+  /** True only when the identity provider verified `email`; absent or false means it is unproven. */
+  email_verified?: boolean;
   /** Active tenant; null for platform-level administrators with no tenant view. */
   tenant_id: string | null;
   /** Role slug, e.g. `TENANT_OWNER`. */

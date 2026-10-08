@@ -23,6 +23,16 @@ describe('FirebaseTokenVerifier', () => {
     expect(calls).toEqual([['tok', true]]);
   });
 
+  it.each([true, false])('passes on whether the email is verified (%s)', async (email_verified) => {
+    const { verifier } = make_verifier(async () => ({
+      uid: 'u1',
+      email: 'a@b.test',
+      email_verified,
+    }));
+
+    expect(await verifier.verify('tok')).toEqual({ uid: 'u1', email: 'a@b.test', email_verified });
+  });
+
   it('reports a missing email as null', async () => {
     const { verifier } = make_verifier(async () => ({ uid: 'u1' }));
 

@@ -69,6 +69,15 @@ describe('QuickLinkService.create_link', () => {
     expect(JSON.stringify(stored)).not.toContain(TOKEN);
   });
 
+  it('records the email draft it was created for', async () => {
+    const { service, quick_links } = make_service();
+
+    const created = await service.create_link(ACTOR, { ...INPUT, email_draft_id: 'draft-7' });
+
+    expect(created.link.email_draft_id).toBe('draft-7');
+    expect((await quick_links.get_link('t1', 'ql-1'))?.email_draft_id).toBe('draft-7');
+  });
+
   it('can be opened later by the hash of its token', async () => {
     const { service, quick_links } = make_service();
     const created = await service.create_link(ACTOR, INPUT);
