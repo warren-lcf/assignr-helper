@@ -323,6 +323,9 @@ async function choose_scope(page: Page, label: string): Promise<void> {
   } else {
     await page.getByTestId('games-scope').getByRole('combobox').click();
     await page.getByRole('option', { name: label }).click();
+    // The closed panel and its backdrop stay in the DOM, still clickable, until the exit animation ends. A second
+    // scope change would otherwise click that stale backdrop (closing the reopened panel) instead of the select.
+    await expect(page.getByRole('listbox')).toHaveCount(0);
   }
 }
 
