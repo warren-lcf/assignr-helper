@@ -68,7 +68,7 @@ export class GamesListService {
       request.filters,
     );
     // The store returns games in start order, so the cap keeps the soonest ones.
-    const capped = views.slice(0, GAMES_LIST_LIMITS.MAX_GAMES_PER_RESPONSE);
+    const capped = views.slice(0, request.max_games ?? GAMES_LIST_LIMITS.MAX_GAMES_PER_RESPONSE);
     return {
       locations: group_games(capped),
       total: views.length,

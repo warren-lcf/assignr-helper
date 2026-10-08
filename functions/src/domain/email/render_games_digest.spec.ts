@@ -328,4 +328,35 @@ describe('render_games_digest', () => {
 
     expect(result.subject).toBe('Line one Bcc: x');
   });
+
+  it('prints the postal address in the footer of both bodies, escaped and on one line', () => {
+    const result = render_games_digest(
+      make_input([make_game()], { postal_address: '1 Main St\nSuite <5>' }),
+      LABELS,
+    );
+
+    expect(result.html).toContain('1 Main St Suite &lt;5&gt;');
+    expect(result.html).not.toContain('Suite <5>');
+    expect(result.text).toContain('1 Main St Suite <5>');
+    expect(result.text.split('\n').filter((line) => line.includes('Suite'))).toHaveLength(1);
+  });
+
+  it.each([undefined, null, '', '   '])(
+    'prints no postal address line for %j',
+    (postal_address) => {
+      const base = render_games_digest(make_input([make_game()]), LABELS);
+      const result = render_games_digest(make_input([make_game()], { postal_address }), LABELS);
+
+      expect(result.html).toBe(base.html);
+      expect(result.text).toBe(base.text);
+    },
+  );
+
+  it('keeps the line breaks of a multi-line intro in the HTML and the text', () => {
+    const labels: IDigestLabels = { ...LABELS, intro: 'First line\r\nSecond <b>line</b>' };
+    const result = render_games_digest(make_input([make_game()]), labels);
+
+    expect(result.html).toContain('First line<br>Second &lt;b&gt;line&lt;/b&gt;');
+    expect(result.text).toContain('First line\r\nSecond <b>line</b>');
+  });
 });

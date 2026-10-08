@@ -5,4 +5,6 @@ export interface ICreateQuickLinkInput {
   scope: IQuickLinkScope;
   /** UTC milliseconds after which the link stops working; null never expires. */
   expires_at: number | null;
+  /** The email draft this link is created for, when it is minted by sending one. */
+  email_draft_id?: string | null;
 }

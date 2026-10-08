@@ -1,0 +1,59 @@
+<section class="send-results" [attr.aria-label]="t('Send results')" data-testid="send-results">
+  <p
+    class="send-results__summary"
+    role="status"
+    aria-live="polite"
+    data-testid="send-results-summary"
+  >
+    <mat-icon aria-hidden="true">{{ result().failed > 0 ? 'warning' : 'check_circle' }}</mat-icon>
+    <span>{{ summary_text() }}</span>
+  </p>
+
+  <dl class="send-results__facts">
+    <div class="send-results__fact">
+      <dt>{{ t('Sent') }}</dt>
+      <dd data-testid="send-results-sent">{{ sent_text() }}</dd>
+    </div>
+    <div class="send-results__fact">
+      <dt>{{ t('Failed') }}</dt>
+      <dd data-testid="send-results-failed">{{ failed_text() }}</dd>
+    </div>
+  </dl>
+
+  @if (result().failed > 0) {
+    <div class="send-results__retry">
+      <button
+        mat-flat-button
+        type="button"
+        [disabled]="!can_retry()"
+        data-testid="send-results-retry"
+        (click)="retry_requested.emit()"
+      >
+        <mat-icon aria-hidden="true">replay</mat-icon>
+        {{ t('Retry failed recipients') }}
+      </button>
+    </div>
+  }
+
+  <mat-list class="send-results__list" [attr.aria-label]="t('Result for each person')">
+    @for (row of result().results; track row.contact_id) {
+      <mat-list-item [attr.data-testid]="'send-result-' + row.contact_id">
+        <span matListItemTitle>{{ name_of(row) }}</span>
+        @if (reason_of(row); as reason) {
+          <span matListItemLine [attr.data-testid]="'send-result-reason-' + row.contact_id">
+            {{ reason }}
+          </span>
+        }
+        <span matListItemMeta class="send-results__meta">
+          <hch-status-chip
+            [label]="t(status_of(row).label)"
+            [tone]="status_of(row).tone"
+            [icon]="status_of(row).icon"
+            [compact]="true"
+            [attr.data-testid]="'send-result-status-' + row.contact_id"
+          ></hch-status-chip>
+        </span>
+      </mat-list-item>
+    }
+  </mat-list>
+</section>

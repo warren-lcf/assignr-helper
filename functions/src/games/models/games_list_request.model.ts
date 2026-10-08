@@ -9,4 +9,6 @@ export interface IGamesListRequest {
   /** Latest start instant to include, in UTC milliseconds. */
   window_end: number;
   filters: IGameFilters;
+  /** Most games to return, the soonest first. Omitted uses the standard per-response cap. */
+  max_games?: number;
 }

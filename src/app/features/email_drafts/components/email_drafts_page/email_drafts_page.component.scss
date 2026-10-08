@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+.email-drafts__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.email-drafts__count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.email-drafts__views {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.email-drafts__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+
+  button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+.email-drafts__banner-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}

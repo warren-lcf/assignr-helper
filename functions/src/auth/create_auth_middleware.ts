@@ -117,6 +117,9 @@ export function create_auth_middleware(options: IAuthMiddlewareOptions): Request
       const real: IAuthContext = {
         uid: verified.uid,
         email: verified.email,
+        ...(verified.email_verified === undefined
+          ? {}
+          : { email_verified: verified.email_verified }),
         tenant_id: membership.tenant_id,
         role: membership.role,
       };

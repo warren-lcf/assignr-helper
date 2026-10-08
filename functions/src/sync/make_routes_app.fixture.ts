@@ -16,6 +16,21 @@ import { StaticRoleStore } from '../auth/static_role_store.js';
 import { ConnectionAdminService } from '../connections/connection_admin.service.js';
 import { create_connections_router } from '../connections/connections.routes.js';
 import { create_connections_admin_router } from '../connections/connections_admin.routes.js';
+import { ContactService } from '../contacts/contact.service.js';
+import { create_contacts_router } from '../contacts/contacts.routes.js';
+import { InMemoryContactStore } from '../contacts/stores/in_memory_contact_store.js';
+import { InMemoryEmailSender } from '../email_delivery/in_memory_email_sender.js';
+import { DigestComposer } from '../email_drafts/digest_composer.js';
+import { EmailDraftService } from '../email_drafts/email_draft.service.js';
+import { EmailPreviewService } from '../email_drafts/email_preview.service.js';
+import { EmailSendService, IEmailSendServiceOptions } from '../email_drafts/email_send.service.js';
+import { create_email_drafts_router } from '../email_drafts/email_drafts.routes.js';
+import { RecipientResolver } from '../email_drafts/recipient_resolver.js';
+import { InMemoryEmailDeliveryStore } from '../email_drafts/stores/in_memory_email_delivery_store.js';
+import { InMemoryEmailDraftStore } from '../email_drafts/stores/in_memory_email_draft_store.js';
+import { EmailSettingsService } from '../email_settings/email_settings.service.js';
+import { create_email_settings_router } from '../email_settings/email_settings.routes.js';
+import { InMemoryEmailSettingsVault } from '../email_settings/in_memory_email_settings_vault.js';
 import { InMemoryCredentialVault } from '../connections/in_memory_credential_vault.js';
 import { IAccountVerifier } from '../connections/ports/account_verifier.interface.js';
 import { InMemoryConnectionStore } from '../connections/stores/in_memory_connection_store.js';
@@ -28,6 +43,10 @@ import { QuickLinkService } from '../quick_links/quick_link.service.js';
 import { create_public_quick_links_router } from '../quick_links/public_quick_links.routes.js';
 import { create_quick_links_router } from '../quick_links/quick_links.routes.js';
 import { InMemoryQuickLinkStore } from '../quick_links/stores/in_memory_quick_link_store.js';
+import { InMemorySecretKeyBackend } from '../unsubscribe/in_memory_secret_key_backend.js';
+import { create_public_unsubscribe_router } from '../unsubscribe/public_unsubscribe.routes.js';
+import { SecretManagerUnsubscribeKeys } from '../unsubscribe/secret_manager_unsubscribe_keys.js';
+import { UnsubscribeService } from '../unsubscribe/unsubscribe.service.js';
 import { ConnectionSyncService } from './connection_sync.service.js';
 import { ISyncHarness, make_sync_harness } from './make_sync_harness.fixture.js';
 import { create_sync_router } from './sync.routes.js';
@@ -35,10 +54,22 @@ import { create_sync_router } from './sync.routes.js';
 /** Bearer tokens the routes specs sign in with. */
 export const ROUTE_TOKENS = {
   owner_a: 'owner-a',
+  /** The same person as `owner_a`, with a verified email address. */
+  owner_a_verified: 'owner-a-verified',
+  /** The same person as `owner_a`, with an address the identity provider has not verified. */
+  owner_a_unverified: 'owner-a-unverified',
   member_a: 'member-a',
   owner_b: 'owner-b',
+  /** The same person as `owner_b`, with a verified email address. */
+  owner_b_verified: 'owner-b-verified',
   admin: 'admin',
 } as const;
+
+/** The verified email address of `ROUTE_TOKENS.owner_a_verified`. */
+export const OWNER_A_EMAIL = 'owner.a@example.test';
+
+/** The public origin the routes app builds email links from. */
+export const ROUTES_APP_ORIGIN = 'https://app.example.test';
 
 /** Everything a routes spec needs. */
 export interface IRoutesApp {
@@ -50,6 +81,17 @@ export interface IRoutesApp {
   verifier: { verify: IAccountVerifier['verify'] };
   audit: IInMemoryAuditLog;
   quick_links: InMemoryQuickLinkStore;
+  contacts: InMemoryContactStore;
+  email_drafts: InMemoryEmailDraftStore;
+  email_deliveries: InMemoryEmailDeliveryStore;
+  email_settings: InMemoryEmailSettingsVault;
+  /** Records every email the app would have sent; set its `failures` to make recipients fail. */
+  email_sender: InMemoryEmailSender;
+  unsubscribe: UnsubscribeService;
+  /** Builds another send service over the same stores, for example with a different clock or concurrency. */
+  make_email_send_service: (overrides?: Partial<IEmailSendServiceOptions>) => EmailSendService;
+  /** The secret store behind the unsubscribe signing key. */
+  unsubscribe_secrets: InMemorySecretKeyBackend;
 }
 
 /** Optional replacements for the routes app's rate limiting and proxy trust. */
@@ -60,6 +102,12 @@ export interface IRoutesAppOptions {
   failure_limiter?: IRateLimiter;
   /** Proxies trusted to report the caller's address; unset trusts none. */
   trust_proxy_hops?: number;
+  /** Limits every public unsubscribe request; defaults like `request_limiter`. */
+  unsubscribe_request_limiter?: IRateLimiter;
+  /** Limits public unsubscribe requests whose token opens nothing; defaults like `request_limiter`. */
+  unsubscribe_failure_limiter?: IRateLimiter;
+  /** Limits test emails; defaults to a limit no spec reaches by accident. */
+  test_send_limiter?: IRateLimiter;
 }
 
 /**
@@ -132,6 +180,73 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
       max_keys: 100,
       now: harness.clock,
     });
+  const contacts = new InMemoryContactStore();
+  const email_drafts = new InMemoryEmailDraftStore();
+  const email_deliveries = new InMemoryEmailDeliveryStore();
+  const email_settings = new InMemoryEmailSettingsVault();
+  const email_sender = new InMemoryEmailSender();
+  const unsubscribe_secrets = new InMemorySecretKeyBackend();
+  const unsubscribe = new UnsubscribeService({
+    keys: new SecretManagerUnsubscribeKeys({
+      backend: unsubscribe_secrets,
+      generate_key: () => Buffer.alloc(32, 3),
+    }),
+    contacts,
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.clock,
+  });
+  let contact_ids = 0;
+  const contact_service = new ContactService({
+    contacts,
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.clock,
+    generate_id: () => `contact-${++contact_ids}`,
+  });
+  const email_settings_service = new EmailSettingsService({
+    vault: email_settings,
+    audit: create_audit_log_service({ store: audit }),
+  });
+  let draft_ids = 0;
+  const email_draft_service = new EmailDraftService({
+    drafts: email_drafts,
+    contacts,
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.clock,
+    generate_id: () => `draft-${++draft_ids}`,
+  });
+  const recipients = new RecipientResolver(contacts);
+  const composer = new DigestComposer({
+    games_service,
+    venues: harness.venues,
+    now: harness.clock,
+  });
+  const email_preview_service = new EmailPreviewService({
+    draft_service: email_draft_service,
+    recipients,
+    composer,
+    settings: email_settings_service,
+    sender: email_sender,
+    audit: create_audit_log_service({ store: audit }),
+    public_app_origin: ROUTES_APP_ORIGIN,
+  });
+  const send_options: IEmailSendServiceOptions = {
+    draft_service: email_draft_service,
+    drafts: email_drafts,
+    deliveries: email_deliveries,
+    contacts,
+    recipients,
+    composer,
+    settings: email_settings_service,
+    sender: email_sender,
+    quick_links: quick_link_service,
+    unsubscribe,
+    audit: create_audit_log_service({ store: audit }),
+    public_app_origin: ROUTES_APP_ORIGIN,
+    now: harness.clock,
+  };
+  const make_email_send_service = (overrides: Partial<IEmailSendServiceOptions> = {}) =>
+    new EmailSendService({ ...send_options, ...overrides });
+  const email_send_service = make_email_send_service();
   harness.provider.organizations = [{ external_id: '101', name: 'Metro', flags: {} }];
 
   const base = {
@@ -139,10 +254,25 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
     member_status: MemberStatus.ACTIVE,
     created_at: 1,
   };
-  const tokens: Record<string, { uid: string; email: string | null }> = {
+  const tokens: Record<string, { uid: string; email: string | null; email_verified?: boolean }> = {
     [ROUTE_TOKENS.owner_a]: { uid: 'u-owner-a', email: null },
+    [ROUTE_TOKENS.owner_a_verified]: {
+      uid: 'u-owner-a',
+      email: OWNER_A_EMAIL,
+      email_verified: true,
+    },
+    [ROUTE_TOKENS.owner_a_unverified]: {
+      uid: 'u-owner-a',
+      email: OWNER_A_EMAIL,
+      email_verified: false,
+    },
     [ROUTE_TOKENS.member_a]: { uid: 'u-member-a', email: null },
     [ROUTE_TOKENS.owner_b]: { uid: 'u-owner-b', email: null },
+    [ROUTE_TOKENS.owner_b_verified]: {
+      uid: 'u-owner-b',
+      email: 'owner.b@example.test',
+      email_verified: true,
+    },
     [ROUTE_TOKENS.admin]: { uid: 'u-admin', email: null },
   };
   const app = create_app({
@@ -155,6 +285,14 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
           service: public_quick_link_service,
           request_limiter: options.request_limiter ?? generous_limiter(),
           failure_limiter: options.failure_limiter ?? generous_limiter(),
+        }),
+      );
+      target.use(
+        '/api',
+        create_public_unsubscribe_router({
+          service: unsubscribe,
+          request_limiter: options.unsubscribe_request_limiter ?? generous_limiter(),
+          failure_limiter: options.unsubscribe_failure_limiter ?? generous_limiter(),
         }),
       );
     },
@@ -200,6 +338,24 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
       target.use('/api', create_connections_admin_router({ admin_service, permission_service }));
       target.use('/api', create_games_router({ games_service, permission_service }));
       target.use('/api', create_quick_links_router({ quick_link_service, permission_service }));
+      target.use('/api', create_contacts_router({ contact_service, permission_service }));
+      target.use(
+        '/api',
+        create_email_settings_router({
+          settings_service: email_settings_service,
+          permission_service,
+        }),
+      );
+      target.use(
+        '/api',
+        create_email_drafts_router({
+          draft_service: email_draft_service,
+          preview_service: email_preview_service,
+          send_service: email_send_service,
+          permission_service,
+          test_send_limiter: options.test_send_limiter ?? generous_limiter(),
+        }),
+      );
       target.use(
         '/api',
         create_sync_router({
@@ -211,5 +367,21 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
       );
     },
   });
-  return { app, harness, connections, vault, verifier, audit, quick_links };
+  return {
+    app,
+    harness,
+    connections,
+    vault,
+    verifier,
+    audit,
+    quick_links,
+    contacts,
+    email_drafts,
+    email_deliveries,
+    email_settings,
+    email_sender,
+    unsubscribe,
+    make_email_send_service,
+    unsubscribe_secrets,
+  };
 }

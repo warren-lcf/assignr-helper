@@ -1,0 +1,116 @@
+<section class="contacts-panel" [attr.aria-label]="t('Contacts')">
+  <div class="contacts-panel__toolbar">
+    <button mat-flat-button type="button" data-testid="contacts-add" (click)="add_requested.emit()">
+      <mat-icon aria-hidden="true">person_add</mat-icon>
+      {{ t('Add contact') }}
+    </button>
+    <button
+      mat-stroked-button
+      type="button"
+      data-testid="contacts-import"
+      (click)="import_requested.emit()"
+    >
+      <mat-icon aria-hidden="true">content_paste</mat-icon>
+      {{ t('Paste a list') }}
+    </button>
+  </div>
+
+  @if (is_loading()) {
+    <div
+      class="contacts-panel__loading"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading contacts')"
+      data-testid="contacts-loading"
+    >
+      <hch-skeleton-line height="56px" [repeat_count]="3" gap="12px"></hch-skeleton-line>
+    </div>
+  } @else if (load_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Contacts could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="contacts-retry"
+      (action_clicked)="retry_requested.emit()"
+      data-testid="contacts-error"
+    ></hch-empty-state>
+  } @else if (contacts().length === 0) {
+    <hch-empty-state
+      icon="group_add"
+      [headline]="t('No contacts yet')"
+      [description]="
+        t(
+          'Add the people who agreed to receive your games available emails. You can add one at a time or paste a list.'
+        )
+      "
+      [action_label]="t('Add contact')"
+      action_testid="contacts-empty-add"
+      (action_clicked)="add_requested.emit()"
+      data-testid="contacts-empty"
+    ></hch-empty-state>
+  } @else {
+    <hch-filter-bar
+      data-testid="contacts-filter-bar"
+      [(search_value)]="search"
+      [search_placeholder]="t('Search contacts')"
+    ></hch-filter-bar>
+
+    <p class="contacts-panel__count" role="status" aria-live="polite" data-testid="contacts-count">
+      {{ summary_text() }}
+    </p>
+
+    @if (shown().length === 0) {
+      <hch-empty-state
+        icon="search_off"
+        [headline]="t('No contacts match your search')"
+        [description]="t('Try different words.')"
+        data-testid="contacts-no-match"
+      ></hch-empty-state>
+    } @else {
+      <mat-card class="contacts-panel__card">
+        <mat-list [attr.aria-label]="t('Contacts')" data-testid="contacts-list">
+          @for (contact of shown(); track contact.contact_id) {
+            <mat-list-item [attr.data-testid]="'contact-row-' + contact.contact_id">
+              <span matListItemTitle>{{ contact.display_name }}</span>
+              <span matListItemLine>{{ contact.email_address }}</span>
+              @if (unsubscribed_text(contact); as note) {
+                <span matListItemLine [attr.data-testid]="'contact-note-' + contact.contact_id">
+                  {{ note }}
+                </span>
+              }
+              <span matListItemMeta class="contacts-panel__meta">
+                <hch-status-chip
+                  [label]="t(status_of(contact).label)"
+                  [tone]="status_of(contact).tone"
+                  [icon]="status_of(contact).icon"
+                  [compact]="true"
+                  [attr.data-testid]="'contact-status-' + contact.contact_id"
+                ></hch-status-chip>
+                <button
+                  mat-icon-button
+                  type="button"
+                  [disabled]="busy_contact_id() !== null"
+                  [attr.aria-busy]="busy_contact_id() === contact.contact_id"
+                  [attr.aria-label]="t('Delete {{name}}', { name: contact.display_name })"
+                  [attr.data-testid]="'contact-delete-' + contact.contact_id"
+                  (click)="delete_requested.emit(contact)"
+                >
+                  @if (busy_contact_id() === contact.contact_id) {
+                    <mat-progress-spinner
+                      mode="indeterminate"
+                      [diameter]="18"
+                      aria-hidden="true"
+                    ></mat-progress-spinner>
+                  } @else {
+                    <mat-icon aria-hidden="true">delete</mat-icon>
+                  }
+                </button>
+              </span>
+            </mat-list-item>
+          }
+        </mat-list>
+      </mat-card>
+    }
+  }
+</section>

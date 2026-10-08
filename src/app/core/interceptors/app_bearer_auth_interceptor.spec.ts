@@ -48,6 +48,19 @@ describe('app_bearer_auth_interceptor', () => {
     expect(get_token).not.toHaveBeenCalled();
   });
 
+  it('never attaches a token to the public unsubscribe calls either', () => {
+    const { http, controller, get_token } = setup();
+
+    http.get('/api/public/unsubscribe/some-token').subscribe();
+    http.post('/api/public/unsubscribe/some-token', {}).subscribe();
+    const requests = controller.match('/api/public/unsubscribe/some-token');
+
+    expect(requests).toHaveLength(2);
+    for (const request of requests)
+      expect(request.request.headers.has('Authorization')).toBe(false);
+    expect(get_token).not.toHaveBeenCalled();
+  });
+
   it('treats the bare /api/public path the same way', () => {
     const { http, controller, get_token } = setup();
 

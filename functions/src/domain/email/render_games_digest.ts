@@ -133,6 +133,7 @@ export function render_games_digest(input: IDigestInput, labels: IDigestLabels):
     format_generated_moment(input.generated_at, labels, time_zone),
   );
   const sent_by = labels.format_sent_by(single_line(input.sender_name));
+  const postal_address = single_line(input.postal_address ?? '');
   const subject = single_line(labels.format_subject(game_count));
 
   const html_parts: string[] = [];
@@ -148,7 +149,7 @@ export function render_games_digest(input: IDigestInput, labels: IDigestLabels):
     text_lines.push(greeting, '');
   }
   html_parts.push(
-    `<p style="margin:0 0 20px 0;font-size:16px;line-height:24px;color:${COLOR_TEXT};">${escape_html(labels.intro)}</p>`,
+    `<p style="margin:0 0 20px 0;font-size:16px;line-height:24px;color:${COLOR_TEXT};">${escape_html(labels.intro).replace(/\r?\n/g, '<br>')}</p>`,
   );
   text_lines.push(labels.intro, '');
 
@@ -203,6 +204,9 @@ export function render_games_digest(input: IDigestInput, labels: IDigestLabels):
 
   const footer_html = [
     `<p style="margin:0 0 4px 0;font-size:13px;line-height:18px;color:${COLOR_MUTED};">${escape_html(sent_by)}</p>`,
+    postal_address.length > 0
+      ? `<p style="margin:0 0 4px 0;font-size:13px;line-height:18px;color:${COLOR_MUTED};">${escape_html(postal_address)}</p>`
+      : '',
     `<p style="margin:0 0 12px 0;font-size:13px;line-height:18px;color:${COLOR_MUTED};">${escape_html(generated_note)}</p>`,
     `<p style="margin:0;font-size:13px;line-height:18px;color:${COLOR_MUTED};">${escape_html(labels.unsubscribe_line)}${
       unsubscribe === null
@@ -210,7 +214,11 @@ export function render_games_digest(input: IDigestInput, labels: IDigestLabels):
         : ` <a href="${escape_html(unsubscribe)}" style="color:${COLOR_MUTED};text-decoration:underline;">${escape_html(labels.unsubscribe_link_label)}</a>`
     }</p>`,
   ].join('');
-  text_lines.push('--', sent_by, generated_note, labels.unsubscribe_line);
+  text_lines.push('--', sent_by);
+  if (postal_address.length > 0) {
+    text_lines.push(postal_address);
+  }
+  text_lines.push(generated_note, labels.unsubscribe_line);
   if (unsubscribe !== null) {
     text_lines.push(`${labels.unsubscribe_link_label}: ${unsubscribe}`);
   }

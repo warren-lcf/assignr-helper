@@ -151,6 +151,28 @@ describe('create_auth_middleware: context', () => {
     expect(response.body).toEqual({ real: context, effective: context });
   });
 
+  it.each([true, false])(
+    'carries the identity provider verdict on the email (%s) into both contexts',
+    async (email_verified) => {
+      const app = make_app(async () => ({
+        uid: 'u-owner',
+        email: 'owner@example.test',
+        email_verified,
+      }));
+
+      const response = await request(app).get('/whoami').set('Authorization', 'Bearer any');
+
+      expect(response.body.real.email_verified).toBe(email_verified);
+      expect(response.body.effective.email_verified).toBe(email_verified);
+    },
+  );
+
+  it('leaves email_verified out when the verifier did not say', async () => {
+    const response = await get('owner-token');
+
+    expect(Object.keys(response.body.real)).not.toContain('email_verified');
+  });
+
   it('gives a platform administrator no tenant by default', async () => {
     const response = await get('admin-token');
 

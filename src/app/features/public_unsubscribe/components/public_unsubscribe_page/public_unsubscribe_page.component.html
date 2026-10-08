@@ -1,0 +1,93 @@
+<hch-page-container [title]="t('Unsubscribe')" icon="unsubscribe">
+  @if (is_not_valid()) {
+    <hch-empty-state
+      icon="link_off"
+      [headline]="t('This link is not valid')"
+      [description]="t('Check that you opened the whole link from the email.')"
+      data-testid="unsubscribe-not-valid"
+    ></hch-empty-state>
+  } @else if (is_loading()) {
+    <mat-card
+      class="unsubscribe__card"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading')"
+      data-testid="unsubscribe-loading"
+    >
+      <mat-card-content>
+        <hch-skeleton-line height="24px" [repeat_count]="2" gap="16px"></hch-skeleton-line>
+      </mat-card-content>
+    </mat-card>
+  } @else if (has_blocking_error()) {
+    @if (load_messages(); as messages) {
+      <hch-empty-state
+        [icon]="load_icon()"
+        [headline]="messages.headline"
+        [description]="messages.description"
+        [action_label]="t('Try again')"
+        action_testid="unsubscribe-retry"
+        (action_clicked)="retry()"
+        data-testid="unsubscribe-error"
+      ></hch-empty-state>
+    }
+  } @else if (is_done()) {
+    <hch-empty-state
+      icon="check_circle"
+      [headline]="t('You have been unsubscribed')"
+      [description]="done_text()"
+      data-testid="unsubscribe-done"
+    ></hch-empty-state>
+  } @else if (is_already_unsubscribed()) {
+    <hch-empty-state
+      icon="check_circle"
+      [headline]="t('You are already unsubscribed')"
+      [description]="already_text()"
+      data-testid="unsubscribe-already"
+    ></hch-empty-state>
+  } @else {
+    <mat-card class="unsubscribe__card" data-testid="unsubscribe-ready">
+      <hch-card-header
+        icon="mail"
+        [title]="t('Unsubscribe from games available emails')"
+        [heading_level]="2"
+      ></hch-card-header>
+      <mat-card-content class="unsubscribe__content">
+        <p class="unsubscribe__question" data-testid="unsubscribe-question">{{ ready_text() }}</p>
+        <p class="unsubscribe__note">
+          {{ t('You can be added again only if the sender adds you again.') }}
+        </p>
+
+        @if (submit_messages(); as messages) {
+          <p class="unsubscribe__error" role="alert" data-testid="unsubscribe-submit-error">
+            <mat-icon aria-hidden="true">error</mat-icon>
+            <span>
+              <strong>{{ messages.headline }}.</strong>
+              {{ messages.description }}
+            </span>
+          </p>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="is_submitting()"
+          [attr.aria-busy]="is_submitting()"
+          data-testid="unsubscribe-submit"
+          (click)="unsubscribe()"
+        >
+          @if (is_submitting()) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="18"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+            {{ t('Unsubscribing') }}
+          } @else {
+            {{ t('Unsubscribe') }}
+          }
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+</hch-page-container>

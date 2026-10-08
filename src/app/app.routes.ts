@@ -21,6 +21,10 @@ const feature_loaders: Readonly<Record<string, () => Promise<Type<unknown>>>> = 
     import('./features/connections/components/connections_page/connections_page.component').then(
       (module) => module.ConnectionsPageComponent,
     ),
+  'email-drafts': () =>
+    import('./features/email_drafts/components/email_drafts_page/email_drafts_page.component').then(
+      (module) => module.EmailDraftsPageComponent,
+    ),
   'quick-links': () =>
     import('./features/quick_links/components/quick_links_page/quick_links_page.component').then(
       (module) => module.QuickLinksPageComponent,
@@ -50,6 +54,15 @@ export const routes: Routes = [
         (module) => module.PublicQuickLinkPageComponent,
       ),
     title: () => inject(AppTranslationService).translate('Games available'),
+  },
+  {
+    // Public and chromeless like the quick link page: opened by anyone holding the link in an email, no auth_guard.
+    path: 'unsubscribe/:token',
+    loadComponent: () =>
+      import('./features/public_unsubscribe/components/public_unsubscribe_page/public_unsubscribe_page.component').then(
+        (module) => module.PublicUnsubscribePageComponent,
+      ),
+    title: () => inject(AppTranslationService).translate('Unsubscribe'),
   },
   { path: '', pathMatch: 'full', redirectTo: landing_path },
   ...feature_routes,

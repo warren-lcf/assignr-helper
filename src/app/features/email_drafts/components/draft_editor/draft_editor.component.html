@@ -1,0 +1,373 @@
+<div
+  #top
+  class="draft-editor"
+  tabindex="-1"
+  role="region"
+  [attr.aria-label]="title()"
+  data-testid="draft-editor"
+>
+  <mat-card class="draft-editor__card">
+    <hch-card-header
+      icon="mail"
+      [title]="title()"
+      [heading_level]="2"
+      [actions]="header_actions()"
+    ></hch-card-header>
+    @if (status(); as current) {
+      <mat-card-content>
+        <hch-status-chip
+          [label]="t(current.label)"
+          [tone]="current.tone"
+          [icon]="current.icon"
+          data-testid="draft-editor-status"
+        ></hch-status-chip>
+      </mat-card-content>
+    }
+  </mat-card>
+
+  @if (is_loading_draft()) {
+    <mat-card
+      class="draft-editor__card"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading the draft')"
+      data-testid="draft-editor-loading"
+    >
+      <mat-card-content>
+        <hch-skeleton-line height="24px" [repeat_count]="4" gap="16px"></hch-skeleton-line>
+      </mat-card-content>
+    </mat-card>
+  } @else if (load_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('The draft could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="draft-editor-retry"
+      (action_clicked)="loaded.reload()"
+      data-testid="draft-editor-error"
+    ></hch-empty-state>
+  } @else {
+    @if (count_changed_notice()) {
+      <div class="draft-editor__notice" role="alert" data-testid="draft-count-changed">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        <span class="draft-editor__notice-text">
+          {{
+            t(
+              'The number of recipients changed while you were reviewing. Nothing was sent. Check the updated preview, then confirm again.'
+            )
+          }}
+        </span>
+      </div>
+    }
+
+    @if (send_result(); as result) {
+      <mat-card class="draft-editor__card">
+        <hch-card-header
+          [title]="t('Send results')"
+          icon="forward_to_inbox"
+          [heading_level]="3"
+        ></hch-card-header>
+        <mat-card-content>
+          <app-send-results-panel
+            [result]="result"
+            [contacts]="contacts()"
+            [can_retry]="can_send()"
+            (retry_requested)="on_send_requested()"
+          ></app-send-results-panel>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (is_editable()) {
+      <form [formRoot]="form" class="draft-editor__form" [attr.aria-label]="t('Email draft')">
+        <mat-card class="draft-editor__card">
+          <hch-card-header [title]="t('Message')" [heading_level]="3"></hch-card-header>
+          <mat-card-content class="draft-editor__fields">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>{{ t('Subject') }}</mat-label>
+              <input
+                matInput
+                type="text"
+                autocomplete="off"
+                [formField]="form.subject"
+                data-testid="draft-subject"
+              />
+              @if (form.subject().errors()[0]; as error) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>{{ t('Intro message (optional)') }}</mat-label>
+              <textarea
+                matInput
+                rows="5"
+                [formField]="form.intro"
+                data-testid="draft-intro"
+              ></textarea>
+              <mat-hint>{{ t('Plain text, shown above the games.') }}</mat-hint>
+              <mat-hint align="end" class="draft-editor__counter" data-testid="draft-intro-counter">
+                {{ intro_counter() }}
+              </mat-hint>
+              @if (form.intro().errors()[0]; as error) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="draft-editor__card">
+          <hch-card-header [title]="t('Games to include')" [heading_level]="3"></hch-card-header>
+          <mat-card-content class="draft-editor__fields">
+            <p class="draft-editor__help">
+              {{
+                t(
+                  'Only open games that match are listed in the email. Leave a filter empty to include everything.'
+                )
+              }}
+            </p>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>{{ t('Search games') }}</mat-label>
+              <input
+                matInput
+                type="text"
+                autocomplete="off"
+                [formField]="form.search"
+                data-testid="draft-search"
+              />
+              @if (form.search().errors()[0]; as error) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="draft-editor__grid">
+              @for (control of facet_controls(); track control.key) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>{{ control.label }}</mat-label>
+                  <mat-select
+                    [formField]="field_for(control.key)"
+                    [attr.data-testid]="control.testid"
+                  >
+                    <mat-option [value]="any_value">{{ control.any_label }}</mat-option>
+                    @for (option of control.options; track option) {
+                      <mat-option [value]="option">{{ option_label(option) }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              }
+            </div>
+
+            <div class="draft-editor__grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>{{ t('First date') }}</mat-label>
+                <input
+                  matInput
+                  autocomplete="off"
+                  [matDatepicker]="from_picker"
+                  [formField]="form.date_from"
+                  data-testid="draft-date-from"
+                />
+                <mat-datepicker-toggle matIconSuffix [for]="from_picker"></mat-datepicker-toggle>
+                <mat-datepicker #from_picker></mat-datepicker>
+                @if (form.date_from().errors()[0]; as error) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>{{ t('Last date') }}</mat-label>
+                <input
+                  matInput
+                  autocomplete="off"
+                  [matDatepicker]="to_picker"
+                  [formField]="form.date_to"
+                  data-testid="draft-date-to"
+                />
+                <mat-datepicker-toggle matIconSuffix [for]="to_picker"></mat-datepicker-toggle>
+                <mat-datepicker #to_picker></mat-datepicker>
+                @if (form.date_to().errors()[0]; as error) {
+                  <mat-error>{{ error.message }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <mat-slide-toggle
+              [checked]="model().only_with_open_slots"
+              data-testid="draft-toggle-open-slots"
+              (change)="on_open_slots_changed($event.checked)"
+            >
+              {{ t('Only games with open slots') }}
+            </mat-slide-toggle>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="draft-editor__card">
+          <hch-card-header [title]="t('Live quick link')" [heading_level]="3"></hch-card-header>
+          <mat-card-content class="draft-editor__fields">
+            <mat-slide-toggle
+              [checked]="model().include_quick_link"
+              data-testid="draft-toggle-quick-link"
+              (change)="on_quick_link_changed($event.checked)"
+            >
+              {{ t('Include a live quick link') }}
+            </mat-slide-toggle>
+            <p class="draft-editor__help">
+              {{
+                t(
+                  'Recipients can open a page that always shows the current open games, without signing in. The link stops working after the number of days you choose.'
+                )
+              }}
+            </p>
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="draft-editor__expiry"
+            >
+              <mat-label>{{ t('Link lives for (days)') }}</mat-label>
+              <input
+                matInput
+                type="number"
+                inputmode="numeric"
+                autocomplete="off"
+                class="draft-editor__number"
+                [formField]="form.quick_link_expiry_days"
+                data-testid="draft-quick-link-days"
+              />
+              <mat-hint>{{ expiry_hint() }}</mat-hint>
+              @if (form.quick_link_expiry_days().errors()[0]; as error) {
+                <mat-error>{{ error.message }}</mat-error>
+              }
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="draft-editor__card">
+          <hch-card-header [title]="t('Recipients')" [heading_level]="3"></hch-card-header>
+          <mat-card-content>
+            <app-recipient-picker
+              [contacts]="contacts()"
+              [mode]="model().recipient_mode"
+              (modeChange)="on_mode_changed($event)"
+              [selected_ids]="model().contact_ids"
+              (selected_idsChange)="on_contacts_chosen($event)"
+            ></app-recipient-picker>
+          </mat-card-content>
+        </mat-card>
+
+        <div class="draft-editor__save">
+          @if (is_dirty()) {
+            <p class="draft-editor__dirty" role="status" data-testid="draft-dirty">
+              <mat-icon aria-hidden="true">edit_note</mat-icon>
+              <span>{{ t('Unsaved changes') }}</span>
+            </p>
+          }
+          @if (form_error(); as message) {
+            <p class="draft-editor__error" role="alert" data-testid="draft-form-error">
+              <mat-icon aria-hidden="true">error</mat-icon>
+              <span>{{ message }}</span>
+            </p>
+          }
+          <button
+            mat-flat-button
+            type="submit"
+            [disabled]="form().submitting()"
+            [attr.aria-busy]="form().submitting()"
+            data-testid="draft-save"
+          >
+            @if (form().submitting()) {
+              <mat-progress-spinner
+                mode="indeterminate"
+                [diameter]="18"
+                aria-hidden="true"
+              ></mat-progress-spinner>
+              {{ t('Saving') }}
+            } @else {
+              {{ t('Save draft') }}
+            }
+          </button>
+        </div>
+      </form>
+    } @else {
+      @if (draft(); as current) {
+        <mat-card class="draft-editor__card">
+          <hch-card-header [title]="t('This email')" [heading_level]="3"></hch-card-header>
+          <mat-card-content class="draft-editor__fields">
+            @if (is_sending_elsewhere()) {
+              <div class="draft-editor__notice" role="status" data-testid="draft-sending-notice">
+                <mat-icon aria-hidden="true">schedule_send</mat-icon>
+                <span class="draft-editor__notice-text">
+                  {{ t('This email is being sent. Check again in a moment.') }}
+                </span>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  data-testid="draft-refresh"
+                  (click)="refresh_draft()"
+                >
+                  {{ t('Check again') }}
+                </button>
+              </div>
+            }
+            @if (current.intro; as intro) {
+              <p class="draft-editor__intro" data-testid="draft-locked-intro">{{ intro }}</p>
+            }
+            <dl class="draft-editor__facts">
+              <div class="draft-editor__fact">
+                <dt>{{ t('Subject') }}</dt>
+                <dd data-testid="draft-locked-subject">{{ current.subject }}</dd>
+              </div>
+              <div class="draft-editor__fact">
+                <dt>{{ t('Created') }}</dt>
+                <dd>{{ current.created_at | hchUserDate: date_time_format }}</dd>
+              </div>
+              @if (current.sent_at !== null) {
+                <div class="draft-editor__fact">
+                  <dt>{{ t('Sent') }}</dt>
+                  <dd data-testid="draft-locked-sent">
+                    {{ current.sent_at | hchUserDate: date_time_format }}
+                  </dd>
+                </div>
+              }
+              @if (current.recipient_count !== null) {
+                <div class="draft-editor__fact">
+                  <dt>{{ t('Recipients') }}</dt>
+                  <dd data-testid="draft-locked-recipients">{{ current.recipient_count }}</dd>
+                </div>
+              }
+            </dl>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+
+    @if (show_preview()) {
+      <mat-card class="draft-editor__card">
+        <hch-card-header
+          [title]="t('Preview and send')"
+          icon="visibility"
+          [heading_level]="3"
+        ></hch-card-header>
+        <mat-card-content>
+          <app-draft-preview-panel
+            [preview]="preview_value()"
+            [is_saved]="draft() !== null"
+            [is_loading]="preview.isLoading()"
+            [has_error]="preview.error() !== undefined"
+            [is_stale]="is_dirty()"
+            [can_send]="can_send()"
+            [can_test_send]="can_test_send()"
+            [is_test_sending]="is_test_sending()"
+            [is_retry]="is_partially_sent()"
+            [show_test_send]="is_editable()"
+            (refresh_requested)="refresh_preview()"
+            (test_send_requested)="on_test_send_requested()"
+            (send_requested)="on_send_requested()"
+            (fix_requested)="on_fix_requested($event)"
+          ></app-draft-preview-panel>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

@@ -1,0 +1,161 @@
+<h2 mat-dialog-title>{{ t('Sender settings') }}</h2>
+
+<mat-dialog-content>
+  <p class="email-settings__intro">
+    {{
+      t(
+        'Emails are sent through your own SendGrid account. Recipients see the sender details below.'
+      )
+    }}
+  </p>
+
+  <div class="email-settings__fields">
+    <form
+      [formRoot]="form"
+      id="email-settings-form"
+      class="email-settings__form"
+      [attr.aria-label]="t('Sender details')"
+    >
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ t('From email address') }}</mat-label>
+        <input
+          matInput
+          type="email"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          [formField]="form.from_email"
+          (input)="on_field_edited('from_email')"
+          data-testid="settings-from-email"
+        />
+        @if (form.from_email().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ t('From name (optional)') }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="form.from_name"
+          (input)="on_field_edited('from_name')"
+          data-testid="settings-from-name"
+        />
+        @if (form.from_name().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ t('Reply-to email address (optional)') }}</mat-label>
+        <input
+          matInput
+          type="email"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          [formField]="form.reply_to"
+          (input)="on_field_edited('reply_to')"
+          data-testid="settings-reply-to"
+        />
+        @if (form.reply_to().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ t('Postal address (optional)') }}</mat-label>
+        <textarea
+          matInput
+          rows="3"
+          autocomplete="off"
+          [formField]="form.postal_address"
+          (input)="on_field_edited('postal_address')"
+          data-testid="settings-postal-address"
+        ></textarea>
+        <mat-hint>
+          {{
+            t(
+              'Recipients should be able to see who sent the email. It is shown at the bottom of every email.'
+            )
+          }}
+        </mat-hint>
+        @if (form.postal_address().errors()[0]; as error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+    </form>
+
+    <!-- The shared secret form has its own <form>, so it sits beside the one above, never inside it. -->
+    <hch-secret-entry-form
+      [fields]="secret_fields()"
+      [configured]="configured()"
+      [saving_key]="saving_key()"
+      (field_saved)="on_secret_saved($event)"
+    ></hch-secret-entry-form>
+
+    @if (!settings.configured) {
+      <p class="email-settings__help" data-testid="settings-setup-help">
+        {{
+          t(
+            'Enter the API key and press its Save button to finish. The sender details above are saved with it.'
+          )
+        }}
+      </p>
+    }
+  </div>
+
+  @if (form_error(); as message) {
+    <p class="email-settings__error" role="alert" data-testid="settings-form-error">
+      <mat-icon aria-hidden="true">error</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="email-settings__actions">
+  @if (settings.configured) {
+    <button
+      mat-stroked-button
+      type="button"
+      class="email-settings__remove"
+      [disabled]="is_busy()"
+      data-testid="settings-remove"
+      (click)="on_remove_requested()"
+    >
+      {{ t('Remove settings') }}
+    </button>
+  }
+  <button
+    mat-button
+    type="button"
+    mat-dialog-close
+    [disabled]="is_busy()"
+    data-testid="settings-cancel"
+  >
+    {{ t('Cancel') }}
+  </button>
+  @if (settings.configured) {
+    <button
+      mat-flat-button
+      type="submit"
+      form="email-settings-form"
+      [disabled]="is_busy()"
+      [attr.aria-busy]="is_busy()"
+      data-testid="settings-save"
+    >
+      @if (is_busy() && !is_saving_secret()) {
+        <mat-progress-spinner
+          mode="indeterminate"
+          [diameter]="18"
+          aria-hidden="true"
+        ></mat-progress-spinner>
+        {{ t('Saving') }}
+      } @else {
+        {{ t('Save settings') }}
+      }
+    </button>
+  }
+</mat-dialog-actions>

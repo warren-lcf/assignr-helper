@@ -9,7 +9,7 @@ export interface IFirebaseAuthLike {
   verifyIdToken: (
     token: string,
     check_revoked?: boolean,
-  ) => Promise<{ uid: string; email?: string | undefined }>;
+  ) => Promise<{ uid: string; email?: string | undefined; email_verified?: boolean | undefined }>;
 }
 
 /** Error codes that mean "this token is not acceptable" rather than "verification could not run". */
@@ -34,7 +34,13 @@ export class FirebaseTokenVerifier implements ITokenVerifier {
   public async verify(token: string): Promise<IVerifiedToken | null> {
     try {
       const decoded = await this.auth().verifyIdToken(token, true);
-      return { uid: decoded.uid, email: decoded.email ?? null };
+      return {
+        uid: decoded.uid,
+        email: decoded.email ?? null,
+        ...(typeof decoded.email_verified === 'boolean'
+          ? { email_verified: decoded.email_verified }
+          : {}),
+      };
     } catch (error) {
       const code = (error as { code?: unknown } | null)?.code;
       if (typeof code === 'string' && REJECTED_TOKEN_CODES.has(code)) return null;

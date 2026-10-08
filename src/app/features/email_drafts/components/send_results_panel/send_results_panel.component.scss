@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.send-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.send-results__summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+// Numbers line up on the right edge so magnitudes compare at a glance.
+.send-results__facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.send-results__fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+
+  dt {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.send-results__retry {
+  display: flex;
+  flex-wrap: wrap;
+
+  button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+.send-results__list {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.send-results__meta {
+  display: inline-flex;
+  align-items: center;
+}
