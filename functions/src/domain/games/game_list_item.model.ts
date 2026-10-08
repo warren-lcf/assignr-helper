@@ -8,6 +8,8 @@ export interface IGameListItem extends IGroupableGame {
   home_team: string | null;
   away_team: string | null;
   open_slot_count: number;
+  /** Names of the positions still open, in game order (one entry per open slot). */
+  open_positions?: string[];
   /** Fee in minor currency units (for example cents), when known. */
   fee_minor: number | null;
   /** ISO 4217 currency code for `fee_minor`. */

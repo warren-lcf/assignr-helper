@@ -7,9 +7,11 @@ import {
   UserDatePipe,
 } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
+import { build_slot_chips } from '../../../games/utils/build_slot_chips';
 import { format_game_title } from '../../../games/utils/format_game_title';
 import { IPublicGame } from '../../models/public_game.model';
 import { format_open_spots } from '../../utils/format_open_spots';
+import { to_game_slot_views } from '../../utils/to_game_slot_views';
 
 /**
  * One game on the public page: kick-off time, the teams (or "Teams to be
@@ -42,6 +44,10 @@ export class PublicGameRowComponent {
     format_open_spots(this.game().open_slot_count, (key, params) => this.t(key, params)),
   );
   public readonly has_open_spots = computed(() => this.game().open_slot_count > 0);
+  /** One chip per position, open ones first, naming the position and whether it is open. */
+  public readonly slot_chips = computed(() =>
+    build_slot_chips(to_game_slot_views(this.game().slots), (key, params) => this.t(key, params)),
+  );
   /** Level and league, whichever the game has, as plain tags. */
   public readonly tags = computed<string[]>(() =>
     [this.game().level, this.game().league].filter((tag): tag is string => Boolean(tag?.trim())),

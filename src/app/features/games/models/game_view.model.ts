@@ -1,4 +1,5 @@
 import { GameStatus } from '../enums/game_status.enum';
+import { IGameSlotView } from './game_slot_view.model';
 
 /** One game as `GET /api/games` returns it. Mirrors the backend. */
 export interface IGameView {
@@ -29,6 +30,11 @@ export interface IGameView {
   is_mine: boolean;
   open_slot_count: number;
   total_slot_count: number;
+  /**
+   * Every position in game order, each open, filled or the referee's own. Absent only when the
+   * server predates this field, so readers treat a missing list as empty.
+   */
+  slots?: IGameSlotView[];
   /** The referee's position on this game (e.g. "Center"), when assigned. */
   my_position: string | null;
   /** Fees are not available from the provider; always null. */

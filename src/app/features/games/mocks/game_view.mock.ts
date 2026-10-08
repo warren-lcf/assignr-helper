@@ -1,3 +1,4 @@
+import { GameSlotState } from '../enums/game_slot_state.enum';
 import { GameStatus } from '../enums/game_status.enum';
 import { IGameDateGroup } from '../models/game_date_group.model';
 import { IGameLocationGroup } from '../models/game_location_group.model';
@@ -37,6 +38,10 @@ export function make_game_view(overrides: Partial<IGameView> = {}): IGameView {
     is_mine: false,
     open_slot_count: 1,
     total_slot_count: 2,
+    slots: [
+      { position: 'Asst. Referee', state: GameSlotState.FILLED },
+      { position: 'Referee', state: GameSlotState.OPEN },
+    ],
     my_position: null,
     fee_minor: null,
     currency: null,
@@ -57,6 +62,11 @@ export const MINE_GAME: IGameView = make_game_view({
   is_mine: true,
   open_slot_count: 0,
   total_slot_count: 3,
+  slots: [
+    { position: 'Center', state: GameSlotState.MINE },
+    { position: 'Asst. Referee', state: GameSlotState.FILLED },
+    { position: 'Asst. Referee', state: GameSlotState.FILLED },
+  ],
   my_position: 'Center',
   age_group: 'U14',
 });
@@ -87,6 +97,7 @@ export const BARE_GAME: IGameView = make_game_view({
   gender: null,
   open_slot_count: 0,
   total_slot_count: 0,
+  slots: [],
 });
 
 /**

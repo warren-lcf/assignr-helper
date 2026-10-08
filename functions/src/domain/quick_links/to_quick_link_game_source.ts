@@ -31,6 +31,10 @@ export function to_quick_link_game_source(
     home_team: game.home_team,
     away_team: game.away_team,
     open_slot_count: game.slots.filter((slot) => slot.assignment_external_id === null).length,
+    slots: game.slots.map((slot) => ({
+      position: slot.position.trim(),
+      is_open: slot.assignment_external_id === null,
+    })),
     fee_minor: null,
     currency: null,
     assignee_names: [],

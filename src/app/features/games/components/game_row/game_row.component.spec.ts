@@ -7,6 +7,7 @@ import {
   OPEN_GAME,
   make_game_view,
 } from '../../mocks/game_view.mock';
+import { GameSlotState } from '../../enums/game_slot_state.enum';
 import { make_translation_service_double } from '../../mocks/translation_service.mock';
 import { IGameView } from '../../models/game_view.model';
 import { GameRowComponent } from './game_row.component';
@@ -97,5 +98,57 @@ describe('GameRowComponent', () => {
     const { element } = render(OPEN_GAME);
 
     expect(element.textContent).not.toMatch(/\$|fee/i);
+  });
+
+  it('names each position and whether it is open, listing open ones first', () => {
+    const { by_testid } = render(OPEN_GAME);
+    const labels = [0, 1].map(
+      (index) => by_testid(`game-position-game-1-${index}`)?.textContent ?? '',
+    );
+
+    expect(labels[0]).toContain('Referee: Open');
+    expect(labels[1]).toContain('Asst. Referee: Filled');
+    expect(by_testid('game-positions-game-1')?.getAttribute('aria-label')).toBe('Positions');
+  });
+
+  it('marks the position the referee holds as theirs', () => {
+    const { by_testid } = render(MINE_GAME);
+
+    expect(by_testid('game-position-game-2-0')?.textContent).toContain('Center: Yours');
+    expect(by_testid('game-position-game-2-2')?.textContent).toContain('Asst. Referee: Filled');
+  });
+
+  it('shows every position of a game that has three open', () => {
+    const { element } = render(
+      make_game_view({
+        open_slot_count: 3,
+        total_slot_count: 3,
+        slots: [
+          { position: 'Referee', state: GameSlotState.OPEN },
+          { position: 'Asst. Referee', state: GameSlotState.OPEN },
+          { position: 'Mentor', state: GameSlotState.OPEN },
+        ],
+      }),
+    );
+    const text = element.textContent ?? '';
+
+    expect(text).toContain('3 open of 3 slots');
+    expect(text).toContain('Referee: Open');
+    expect(text).toContain('Asst. Referee: Open');
+    expect(text).toContain('Mentor: Open');
+  });
+
+  it('shows no position list for a cancelled game', () => {
+    expect(render(CANCELLED_GAME).by_testid('game-positions-game-3')).toBeNull();
+  });
+
+  it('shows no position list for a game with no positions', () => {
+    expect(render(BARE_GAME).by_testid('game-positions-game-4')).toBeNull();
+  });
+
+  it('shows no position list when the server sent none', () => {
+    expect(
+      render(make_game_view({ slots: undefined })).by_testid('game-positions-game-1'),
+    ).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { GameStatus } from '../../integrations/enums/game_status.enum.js';
+import { GameSlotState } from './game_slot_state.enum.js';
 import { IGameView } from './game_view.model.js';
 
 /**
@@ -28,6 +29,8 @@ export function make_game_view(overrides: Partial<IGameView> = {}): IGameView {
     is_open: true,
     is_mine: false,
     open_slot_count: 1,
+    open_positions: ['Referee'],
+    slots: [{ position: 'Referee', state: GameSlotState.OPEN }],
     total_slot_count: 1,
     my_position: null,
     fee_minor: null,

@@ -24,6 +24,7 @@ const PUBLIC_KEYS = [
   'local_date',
   'location_group',
   'open_slot_count',
+  'slots',
   'start_at',
   'venue_name',
 ];
@@ -45,6 +46,7 @@ function make_game(overrides: Partial<IQuickLinkGameSource> = {}): IQuickLinkGam
     home_team: 'Hawks',
     away_team: 'Eagles',
     open_slot_count: 1,
+    slots: [{ position: 'Referee', is_open: true }],
     fee_minor: 5000,
     currency: 'USD',
     assignee_names: ['Pat Referee'],
@@ -78,6 +80,7 @@ describe('to_public_games', () => {
       home_team: 'Hawks',
       away_team: 'Eagles',
       open_slot_count: 1,
+      slots: [{ position: 'Referee', is_open: true }],
       fee_minor: 5000,
       currency: 'USD',
     });
@@ -227,5 +230,28 @@ describe('to_public_games', () => {
     to_public_games(games, ALL_SCOPE, NOW);
 
     expect(games).toEqual(snapshot);
+  });
+
+  it('shows each position and whether it is open, with nothing about who holds it', () => {
+    const games = to_public_games(
+      [
+        make_game({
+          open_slot_count: 1,
+          slots: [
+            { position: 'Referee', is_open: true },
+            { position: 'Asst. Referee', is_open: false },
+          ],
+          assignee_names: ['Pat Referee'],
+        }),
+      ],
+      ALL_SCOPE,
+      NOW,
+    );
+
+    expect(games[0].slots).toEqual([
+      { position: 'Referee', is_open: true },
+      { position: 'Asst. Referee', is_open: false },
+    ]);
+    expect(JSON.stringify(games)).not.toContain('Pat Referee');
   });
 });

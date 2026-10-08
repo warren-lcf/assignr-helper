@@ -5,6 +5,7 @@ import { IDigestInput } from './digest_input.model.js';
 import { IDigestLabels } from './digest_labels.model.js';
 import { IRenderedDigest } from './rendered_digest.model.js';
 import { format_digest_fee } from './format_digest_fee.js';
+import { format_open_position_names } from './format_open_position_names.js';
 import { safe_https_url } from './safe_https_url.js';
 
 const FONT_STACK = "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
@@ -51,11 +52,15 @@ function build_game_row_view(
     .map(single_line)
     .join(` ${labels.versus_label} `);
   const fee = format_digest_fee(game.fee_minor, game.currency, labels.locale);
+  const open_summary = labels.format_open_positions(game.open_slot_count);
+  const open_names = format_open_position_names(game.open_positions ?? []);
   const details = [
     game.organization_name,
     game.level,
     game.league,
-    labels.format_open_positions(game.open_slot_count),
+    open_summary.length > 0 && open_names.length > 0
+      ? `${open_summary}: ${open_names}`
+      : open_summary,
     fee,
   ]
     .filter((part): part is string => part !== null)

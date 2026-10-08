@@ -17,6 +17,7 @@ export function make_public_game(overrides: Partial<IPublicGame> = {}): IPublicG
     home_team: null,
     away_team: null,
     open_slot_count: 1,
+    slots: [{ position: 'Referee', is_open: true }],
     fee_minor: null,
     currency: null,
     ...overrides,

@@ -75,6 +75,7 @@ export function to_public_games(
       home_team: game.home_team,
       away_team: game.away_team,
       open_slot_count: game.open_slot_count,
+      slots: game.slots.map((slot) => ({ position: slot.position, is_open: slot.is_open })),
       fee_minor: game.fee_minor,
       currency: game.currency,
     }))

@@ -57,6 +57,31 @@ function make_input(games: IGameListItem[], overrides: Partial<IDigestInput> = {
 }
 
 describe('render_games_digest', () => {
+  it('names the open positions, merging repeats, and escapes their text', () => {
+    const result = render_games_digest(
+      make_input([
+        make_game({
+          open_slot_count: 3,
+          open_positions: ['Referee', 'Asst. Referee', 'Asst. <b>Referee'],
+        }),
+      ]),
+      LABELS,
+    );
+
+    expect(result.html).toContain(
+      '3 open positions: Referee, Asst. Referee, Asst. &lt;b&gt;Referee',
+    );
+    expect(result.text).toContain('3 open positions: Referee, Asst. Referee, Asst. <b>Referee');
+    expect(result.html).not.toContain('<b>Referee');
+  });
+
+  it('shows only the count when no position names are known', () => {
+    const result = render_games_digest(make_input([make_game({ open_positions: [] })]), LABELS);
+
+    expect(result.html).toContain('2 open positions');
+    expect(result.html).not.toContain('2 open positions:');
+  });
+
   it('renders subject, html and text for a normal digest', () => {
     const result = render_games_digest(make_input([make_game()]), LABELS);
 
