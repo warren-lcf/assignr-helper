@@ -1,0 +1,127 @@
+:host {
+  display: block;
+}
+
+.import__intro {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.import__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.import__summary {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.import__subheading {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-small);
+}
+
+.import__problems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-inline-start: 20px;
+  overflow-wrap: anywhere;
+
+  li {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.import__problem-text {
+  color: var(--mat-sys-on-surface-variant);
+  font-family: ui-monospace, monospace;
+  font-size: 0.875em;
+}
+
+.import__more {
+  margin: 8px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.import__consent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.import__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font: var(--mat-sys-title-medium);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+// Numbers line up on the right edge so magnitudes compare at a glance.
+.import__facts {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.import__fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+
+  dt {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.import__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.import__fields + .import__error {
+  margin-top: 16px;
+}
+
+mat-dialog-actions button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* A phone held sideways leaves too little height for a fixed title and buttons around a scrolling body:
+   the controls of the body would slide under the buttons. Let the whole dialog scroll as one instead. */
+@media (max-height: 600px) {
+  :host {
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  mat-dialog-content {
+    max-height: none;
+    overflow: visible;
+  }
+}

@@ -56,6 +56,22 @@ describe('AppComponent', () => {
     expect(fixture.componentInstance.show_chrome()).toBe(false);
   });
 
+  it('shows no chrome on the public unsubscribe page either', async () => {
+    const { router } = make_app();
+    const fixture = TestBed.createComponent(AppComponent);
+    await router.navigateByUrl('/unsubscribe/some-token');
+
+    expect(fixture.componentInstance.show_chrome()).toBe(false);
+  });
+
+  it('does not mistake a similar path for the unsubscribe page', async () => {
+    const { router } = make_app();
+    const fixture = TestBed.createComponent(AppComponent);
+    await router.navigateByUrl('/email-drafts');
+
+    expect(fixture.componentInstance.show_chrome()).toBe(true);
+  });
+
   it('does not mistake a similar path for the quick link page', async () => {
     const { router } = make_app();
     const fixture = TestBed.createComponent(AppComponent);

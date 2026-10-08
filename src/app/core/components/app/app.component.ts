@@ -14,12 +14,19 @@ const LOGIN_PATH_PREFIX = '/login';
 /** Path prefix of the public quick link page, opened by anyone holding a link. */
 const QUICK_LINK_PATH_PREFIX = '/q/';
 
+/** Path prefix of the public unsubscribe page, opened by anyone holding the link in an email. */
+const UNSUBSCRIBE_PATH_PREFIX = '/unsubscribe/';
+
 /** Pages shown without any app chrome (no header, sidebar or utility bar): the public ones. */
-const CHROMELESS_PATH_PREFIXES: readonly string[] = [LOGIN_PATH_PREFIX, QUICK_LINK_PATH_PREFIX];
+const CHROMELESS_PATH_PREFIXES: readonly string[] = [
+  LOGIN_PATH_PREFIX,
+  QUICK_LINK_PATH_PREFIX,
+  UNSUBSCRIBE_PATH_PREFIX,
+];
 
 /**
  * Root component: the shared application shell (header, sidebar, breadcrumbs,
- * routed content). The public pages (sign-in and quick links) are shown without any chrome.
+ * routed content). The public pages (sign-in, quick links and unsubscribe) are shown without any chrome.
  */
 @Component({
   selector: 'app-root',

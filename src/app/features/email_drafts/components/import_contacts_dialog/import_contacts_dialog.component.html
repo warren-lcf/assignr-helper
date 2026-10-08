@@ -1,0 +1,152 @@
+@if (result(); as summary) {
+  <h2 mat-dialog-title>{{ t('Import finished') }}</h2>
+
+  <mat-dialog-content>
+    <p class="import__status" role="status" data-testid="import-result-heading">
+      <mat-icon aria-hidden="true">{{
+        summary.invalid.length > 0 ? 'warning' : 'check_circle'
+      }}</mat-icon>
+      <span>{{ t('The server has processed your list.') }}</span>
+    </p>
+    <dl class="import__facts">
+      <div class="import__fact">
+        <dt>{{ t('Added') }}</dt>
+        <dd data-testid="import-result-added">{{ summary.added }}</dd>
+      </div>
+      <div class="import__fact">
+        <dt>{{ t('Already in your list') }}</dt>
+        <dd data-testid="import-result-existing">{{ summary.skipped_existing }}</dd>
+      </div>
+      <div class="import__fact">
+        <dt>{{ t('Not accepted') }}</dt>
+        <dd data-testid="import-result-invalid">{{ summary.invalid.length }}</dd>
+      </div>
+    </dl>
+
+    @if (summary.invalid.length > 0) {
+      <h3 class="import__subheading">{{ t('Rows that were not accepted') }}</h3>
+      <ul class="import__problems" data-testid="import-result-invalid-list">
+        @for (row of summary.invalid; track row.row) {
+          <li>{{ row_text(row) }}</li>
+        }
+      </ul>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-flat-button type="button" data-testid="import-done" (click)="done()">
+      {{ t('Done') }}
+    </button>
+  </mat-dialog-actions>
+} @else {
+  <h2 mat-dialog-title>{{ t('Paste a list of contacts') }}</h2>
+
+  <form [formRoot]="form" class="import" (submit)="attempted.set(true)">
+    <mat-dialog-content>
+      <p class="import__intro" data-testid="import-intro">{{ intro_text() }}</p>
+
+      <div class="import__fields">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ t('Contacts') }}</mat-label>
+          <textarea
+            matInput
+            rows="8"
+            spellcheck="false"
+            autocapitalize="off"
+            [formField]="form.raw_text"
+            data-testid="import-text"
+          ></textarea>
+          @if (form.raw_text().errors()[0]; as error) {
+            <mat-error>{{ error.message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <p class="import__summary" role="status" aria-live="polite" data-testid="import-summary">
+          {{ summary_text() }}
+        </p>
+
+        @if (shown_problems().length > 0) {
+          <section
+            [attr.aria-label]="t('Lines that will be skipped')"
+            data-testid="import-problems"
+          >
+            <h3 class="import__subheading">{{ t('Lines that will be skipped') }}</h3>
+            <ul class="import__problems">
+              @for (problem of shown_problems(); track problem.row) {
+                <li>
+                  <span class="import__problem-title">{{ problem.title }}</span>
+                  <span class="import__problem-text">{{ problem.text }}</span>
+                </li>
+              }
+            </ul>
+            @if (hidden_problem_count() > 0) {
+              <p class="import__more">
+                {{ more_problems_text() }}
+              </p>
+            }
+          </section>
+        }
+
+        <div class="import__consent">
+          <mat-checkbox
+            [checked]="model().consent_attested"
+            [required]="true"
+            aria-describedby="import-consent-error"
+            data-testid="import-consent"
+            (change)="on_consent_changed($event.checked)"
+          >
+            {{ t('I confirm these people agreed to receive these emails') }}
+          </mat-checkbox>
+          <p
+            id="import-consent-error"
+            class="import__error"
+            role="alert"
+            data-testid="import-consent-error"
+          >
+            @if (show_consent_error()) {
+              <mat-icon aria-hidden="true">error</mat-icon>
+              <span>{{ form.consent_attested().errors()[0]?.message }}</span>
+            }
+          </p>
+        </div>
+      </div>
+
+      @if (form_error(); as message) {
+        <p class="import__error" role="alert" data-testid="import-form-error">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button
+        mat-button
+        type="button"
+        mat-dialog-close
+        [disabled]="form().submitting()"
+        data-testid="import-cancel"
+      >
+        {{ t('Cancel') }}
+      </button>
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="form().submitting()"
+        [attr.aria-busy]="form().submitting()"
+        data-testid="import-submit"
+      >
+        @if (form().submitting()) {
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="18"
+            aria-hidden="true"
+          ></mat-progress-spinner>
+          {{ t('Importing') }}
+        } @else {
+          {{ t('Import contacts') }}
+        }
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

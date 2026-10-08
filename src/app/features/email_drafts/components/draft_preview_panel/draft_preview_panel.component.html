@@ -1,0 +1,168 @@
+<div class="draft-preview" data-testid="draft-preview">
+  @if (!is_saved()) {
+    <p class="draft-preview__hint" data-testid="draft-preview-unsaved">
+      {{ t('Save the draft to see a preview and send it.') }}
+    </p>
+  } @else if (has_error()) {
+    <div class="draft-preview__error" role="alert" data-testid="draft-preview-error">
+      <mat-icon aria-hidden="true">error</mat-icon>
+      <span class="draft-preview__error-text">{{ t('The preview could not be loaded.') }}</span>
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="draft-preview-retry"
+        (click)="refresh_requested.emit()"
+      >
+        {{ t('Try again') }}
+      </button>
+    </div>
+  } @else if (preview(); as current) {
+    @if (is_stale()) {
+      <div class="draft-preview__notice" role="status" data-testid="draft-preview-stale">
+        <mat-icon aria-hidden="true">edit_note</mat-icon>
+        <span class="draft-preview__notice-text">
+          {{
+            t(
+              'You have unsaved changes. Save the draft to update this preview. Only the saved draft can be sent.'
+            )
+          }}
+        </span>
+      </div>
+    }
+
+    <dl class="draft-preview__facts">
+      <div class="draft-preview__fact">
+        <dt>{{ t('Subject') }}</dt>
+        <dd class="draft-preview__subject" data-testid="draft-preview-subject">
+          {{ current.subject }}
+        </dd>
+      </div>
+      <div class="draft-preview__fact">
+        <dt>{{ t('Games in the email') }}</dt>
+        <dd data-testid="draft-preview-games">{{ games_text() }}</dd>
+      </div>
+      <div class="draft-preview__fact">
+        <dt>{{ t('People who would receive it') }}</dt>
+        <dd data-testid="draft-preview-recipients">{{ recipients_text() }}</dd>
+      </div>
+      <div class="draft-preview__fact">
+        <dt>{{ t('Left out (unsubscribed or missing)') }}</dt>
+        <dd data-testid="draft-preview-skipped">{{ skipped_text() }}</dd>
+      </div>
+    </dl>
+
+    @if (warnings().length > 0) {
+      <ul class="draft-preview__warnings" [attr.aria-label]="t('Things to check before sending')">
+        @for (warning of warnings(); track warning.code) {
+          <li
+            class="draft-preview__warning"
+            [class.draft-preview__warning--blocking]="warning.is_blocking"
+            [attr.data-testid]="'draft-warning-' + warning.code"
+          >
+            <mat-icon aria-hidden="true">{{ warning.icon }}</mat-icon>
+            <div class="draft-preview__warning-body">
+              <p class="draft-preview__warning-headline">
+                <strong>{{ warning.headline }}</strong>
+                <span class="draft-preview__warning-kind">
+                  {{ warning.is_blocking ? t('Blocks sending') : t('Advice') }}
+                </span>
+              </p>
+              <p class="draft-preview__warning-advice">{{ warning.advice }}</p>
+              @if (warning.fix_target !== null && warning.fix_label) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [attr.data-testid]="'draft-warning-fix-' + warning.code"
+                  (click)="on_fix_clicked(warning.fix_target)"
+                >
+                  {{ warning.fix_label }}
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <mat-button-toggle-group
+      class="draft-preview__toggle"
+      [attr.aria-label]="t('Preview version')"
+      [value]="view()"
+      (change)="on_view_changed($event.value)"
+    >
+      <mat-button-toggle [value]="views.EMAIL" data-testid="draft-preview-show-email">
+        {{ t('Email') }}
+      </mat-button-toggle>
+      <mat-button-toggle [value]="views.TEXT" data-testid="draft-preview-show-text">
+        {{ t('Plain text') }}
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    @if (view() === views.EMAIL) {
+      <iframe
+        class="draft-preview__frame"
+        sandbox=""
+        referrerpolicy="no-referrer"
+        [attr.title]="t('Email preview')"
+        [srcdoc]="current.html"
+        data-testid="draft-preview-frame"
+      ></iframe>
+      <p class="draft-preview__note" data-testid="draft-preview-note">
+        {{
+          t(
+            'This preview shows the content of the email. Fonts and colours may look different in the real email.'
+          )
+        }}
+      </p>
+    } @else {
+      <pre class="draft-preview__text" tabindex="0" data-testid="draft-preview-text">{{
+        current.text
+      }}</pre>
+    }
+  } @else if (is_loading()) {
+    <div
+      class="draft-preview__loading"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading the preview')"
+      data-testid="draft-preview-loading"
+    >
+      <hch-skeleton-line height="20px" [repeat_count]="3" gap="12px"></hch-skeleton-line>
+    </div>
+  }
+
+  @if (is_saved() && show_actions()) {
+    <div class="draft-preview__actions">
+      @if (show_test_send()) {
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="!can_test_send() || is_test_sending()"
+          [attr.aria-busy]="is_test_sending()"
+          data-testid="draft-test-send"
+          (click)="test_send_requested.emit()"
+        >
+          @if (is_test_sending()) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="18"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+          }
+          {{ t('Send test to me') }}
+        </button>
+      }
+      <button
+        mat-flat-button
+        type="button"
+        class="draft-preview__send"
+        [disabled]="!can_send()"
+        data-testid="draft-send"
+        (click)="send_requested.emit()"
+      >
+        <mat-icon aria-hidden="true">send</mat-icon>
+        {{ is_retry() ? t('Retry failed recipients') : t('Review and send') }}
+      </button>
+    </div>
+  }
+</div>

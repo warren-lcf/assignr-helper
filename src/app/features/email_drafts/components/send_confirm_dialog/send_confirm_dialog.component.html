@@ -1,0 +1,73 @@
+<h2 mat-dialog-title class="send-confirm__title">
+  <mat-icon aria-hidden="true">warning</mat-icon>
+  <span>{{ data.is_retry ? t('Retry sending this email?') : t('Send this email now?') }}</span>
+</h2>
+
+<mat-dialog-content>
+  <p class="send-confirm__headline" data-testid="send-confirm-headline">{{ headline() }}</p>
+
+  @if (retry_note(); as note) {
+    <p class="send-confirm__note" data-testid="send-confirm-retry-note">{{ note }}</p>
+  }
+
+  <dl class="send-confirm__facts">
+    <div class="send-confirm__fact">
+      <dt>{{ t('Subject') }}</dt>
+      <dd data-testid="send-confirm-subject">{{ data.subject }}</dd>
+    </div>
+    <div class="send-confirm__fact">
+      <dt>{{ t('Games in the email') }}</dt>
+      <dd data-testid="send-confirm-games">{{ games_text() }}</dd>
+    </div>
+    @if (quick_link_text(); as quick_link) {
+      <div class="send-confirm__fact">
+        <dt>{{ t('Quick link') }}</dt>
+        <dd data-testid="send-confirm-quick-link">{{ quick_link }}</dd>
+      </div>
+    }
+    <div class="send-confirm__fact">
+      <dt>{{ t('Recipients') }}</dt>
+      <dd data-testid="send-confirm-recipients">{{ recipients_text() }}</dd>
+    </div>
+  </dl>
+
+  @if (error_message(); as message) {
+    <p class="send-confirm__error" role="alert" data-testid="send-confirm-error">
+      <mat-icon aria-hidden="true">error</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    cdkFocusInitial
+    [disabled]="is_sending()"
+    data-testid="send-confirm-cancel"
+    (click)="cancel()"
+  >
+    {{ t('Cancel') }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    class="send-confirm__submit"
+    [disabled]="is_sending()"
+    [attr.aria-busy]="is_sending()"
+    data-testid="send-confirm-submit"
+    (click)="confirm()"
+  >
+    @if (is_sending()) {
+      <mat-progress-spinner
+        mode="indeterminate"
+        [diameter]="18"
+        aria-hidden="true"
+      ></mat-progress-spinner>
+      {{ t('Sending') }}
+    } @else {
+      {{ confirm_label() }}
+    }
+  </button>
+</mat-dialog-actions>

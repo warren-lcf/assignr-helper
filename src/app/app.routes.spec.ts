@@ -7,6 +7,8 @@ import { GamesPageComponent } from './features/games/components/games_page/games
 import { ConnectionsPageComponent } from './features/connections/components/connections_page/connections_page.component';
 import { QuickLinksPageComponent } from './features/quick_links/components/quick_links_page/quick_links_page.component';
 import { PublicQuickLinkPageComponent } from './features/public_quick_link/components/public_quick_link_page/public_quick_link_page.component';
+import { EmailDraftsPageComponent } from './features/email_drafts/components/email_drafts_page/email_drafts_page.component';
+import { PublicUnsubscribePageComponent } from './features/public_unsubscribe/components/public_unsubscribe_page/public_unsubscribe_page.component';
 import { AppTranslationService } from './core/services/translation/app_translation.service';
 import { routes } from './app.routes';
 
@@ -68,6 +70,54 @@ describe('routes', () => {
     expect(await (quick_links?.loadComponent as () => Promise<unknown>)()).toBe(
       QuickLinksPageComponent,
     );
+  });
+
+  it('lazy loads the Email drafts page in place of its placeholder, behind the guard', async () => {
+    const email_drafts = routes.find((route) => route.path === 'email-drafts');
+
+    expect(email_drafts?.canActivate).toEqual([auth_guard]);
+    expect(await (email_drafts?.loadComponent as () => Promise<unknown>)()).toBe(
+      EmailDraftsPageComponent,
+    );
+  });
+
+  describe('the public unsubscribe route', () => {
+    const find_public = (): Route | undefined =>
+      routes.find((route) => route.path === 'unsubscribe/:token');
+
+    it('exists outside the guard, so a signed-out visitor can open it', () => {
+      expect(find_public()).toBeDefined();
+      expect(find_public()?.canActivate).toBeUndefined();
+      expect(find_public()?.canMatch).toBeUndefined();
+    });
+
+    it('lazy loads the public page', async () => {
+      expect(await (find_public()?.loadComponent as () => Promise<unknown>)()).toBe(
+        PublicUnsubscribePageComponent,
+      );
+    });
+
+    it('sits before the catch-all so it is reachable', () => {
+      const public_index = routes.findIndex((route) => route.path === 'unsubscribe/:token');
+      const catch_all_index = routes.findIndex((route) => route.path === '**');
+
+      expect(public_index).toBeGreaterThanOrEqual(0);
+      expect(public_index).toBeLessThan(catch_all_index);
+    });
+
+    it('sets a translated title', () => {
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: AppTranslationService,
+            useValue: { translate: (key: string) => `T(${key})` },
+          },
+        ],
+      });
+      const title = find_public()?.title as () => string;
+
+      expect(TestBed.runInInjectionContext(title)).toBe('T(Unsubscribe)');
+    });
   });
 
   describe('the public quick link route', () => {

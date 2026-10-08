@@ -1,0 +1,66 @@
+:host {
+  display: block;
+}
+
+.email-settings__intro {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.email-settings__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.email-settings__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.email-settings__help {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.email-settings__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.email-settings__actions {
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+.email-settings__remove {
+  --mat-button-outlined-label-text-color: var(--mat-sys-error);
+
+  margin-inline-end: auto;
+}
+
+/* This dialog is taller than most screens, so the whole dialog scrolls as one instead of its body scrolling
+   under fixed buttons: the controls of the body would slide under the buttons. */
+:host {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+
+mat-dialog-content {
+  max-height: none;
+  overflow: visible;
+}

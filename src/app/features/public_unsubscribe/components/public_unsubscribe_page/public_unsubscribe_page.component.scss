@@ -1,0 +1,46 @@
+// The page has no app chrome, so it centres itself and keeps a readable width on a wide screen.
+:host {
+  display: block;
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.unsubscribe__card {
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.unsubscribe__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unsubscribe__question {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.unsubscribe__note {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.unsubscribe__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+mat-card-actions button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

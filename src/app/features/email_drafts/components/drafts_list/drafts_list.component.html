@@ -1,0 +1,74 @@
+@for (draft of drafts(); track draft.draft_id) {
+  <mat-card class="drafts-list__card" [attr.data-testid]="'draft-card-' + draft.draft_id">
+    <hch-card-header [title]="draft.subject" [heading_level]="3"></hch-card-header>
+
+    <mat-card-content>
+      <hch-status-chip
+        [label]="t(status_of(draft).label)"
+        [tone]="status_of(draft).tone"
+        [icon]="status_of(draft).icon"
+        [attr.data-testid]="'draft-status-' + draft.draft_id"
+      ></hch-status-chip>
+
+      <dl class="drafts-list__facts">
+        <div class="drafts-list__fact">
+          <dt>{{ t('Created') }}</dt>
+          <dd [attr.data-testid]="'draft-created-' + draft.draft_id">
+            {{ draft.created_at | hchUserDate: date_time_format }}
+          </dd>
+        </div>
+        @if (draft.sent_at !== null) {
+          <div class="drafts-list__fact">
+            <dt>{{ t('Sent') }}</dt>
+            <dd [attr.data-testid]="'draft-sent-' + draft.draft_id">
+              {{ draft.sent_at | hchUserDate: date_time_format }}
+            </dd>
+          </div>
+        }
+        <div class="drafts-list__fact">
+          <dt>{{ t('Recipients') }}</dt>
+          <dd [attr.data-testid]="'draft-recipients-' + draft.draft_id">
+            {{ recipients_text(draft) }}
+          </dd>
+        </div>
+      </dl>
+    </mat-card-content>
+
+    <mat-card-actions align="end" class="drafts-list__actions">
+      @if (is_editable(draft)) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="drafts-list__delete"
+          [disabled]="busy_draft_id() !== null"
+          [attr.aria-busy]="busy_draft_id() === draft.draft_id"
+          [attr.aria-label]="t('Delete draft {{subject}}', { subject: draft.subject })"
+          [attr.data-testid]="'draft-delete-' + draft.draft_id"
+          (click)="delete_requested.emit(draft)"
+        >
+          @if (busy_draft_id() === draft.draft_id) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="18"
+              aria-hidden="true"
+            ></mat-progress-spinner>
+          }
+          {{ t('Delete') }}
+        </button>
+      }
+      <button
+        mat-flat-button
+        type="button"
+        [attr.aria-label]="
+          is_editable(draft)
+            ? t('Edit draft {{subject}}', { subject: draft.subject })
+            : t('View draft {{subject}}', { subject: draft.subject })
+        "
+        [attr.data-testid]="'draft-open-' + draft.draft_id"
+        (click)="open_requested.emit(draft)"
+      >
+        {{ is_editable(draft) ? t('Edit') : t('View') }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+}

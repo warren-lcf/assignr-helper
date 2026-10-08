@@ -1,0 +1,45 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.contacts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.contacts-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+.contacts-panel__loading {
+  min-width: 0;
+}
+
+.contacts-panel__count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.contacts-panel__card {
+  min-width: 0;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.contacts-panel__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

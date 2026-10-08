@@ -1,0 +1,91 @@
+<div class="recipient-picker">
+  <mat-radio-group
+    class="recipient-picker__modes"
+    [attr.aria-label]="t('Who receives this email')"
+    [value]="mode()"
+    [disabled]="is_disabled()"
+    (change)="on_mode_changed($event.value)"
+  >
+    <mat-radio-button [value]="modes.ALL_CONSENTED" data-testid="recipient-mode-all">
+      {{ everyone_label() }}
+    </mat-radio-button>
+    <mat-radio-button [value]="modes.SELECTED" data-testid="recipient-mode-selected">
+      {{ t('Choose specific people') }}
+    </mat-radio-button>
+  </mat-radio-group>
+
+  @if (mode() === modes.SELECTED) {
+    <div class="recipient-picker__bar">
+      <p
+        class="recipient-picker__count"
+        role="status"
+        aria-live="polite"
+        data-testid="recipient-chosen-count"
+      >
+        {{ chosen_text() }}
+      </p>
+      <div class="recipient-picker__bulk">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="is_disabled() || consenting().length === 0"
+          data-testid="recipient-select-all"
+          (click)="select_all()"
+        >
+          {{ t('Select all') }}
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="is_disabled() || chosen_count() === 0"
+          data-testid="recipient-select-none"
+          (click)="select_none()"
+        >
+          {{ t('Select none') }}
+        </button>
+      </div>
+    </div>
+
+    @if (is_over_limit()) {
+      <p class="recipient-picker__limit" role="alert" data-testid="recipient-over-limit">
+        {{ over_limit_text() }}
+      </p>
+    }
+
+    @if (contacts().length === 0) {
+      <p class="recipient-picker__empty" data-testid="recipient-no-contacts">
+        {{ t('You have no contacts yet. Add some in the Contacts area first.') }}
+      </p>
+    } @else {
+      <mat-selection-list
+        class="recipient-picker__list"
+        [attr.aria-label]="t('Choose recipients')"
+        [disabled]="is_disabled()"
+        (selectionChange)="on_selection_changed($event)"
+      >
+        @for (contact of contacts(); track contact.contact_id) {
+          <mat-list-option
+            checkboxPosition="before"
+            [value]="contact.contact_id"
+            [selected]="is_chosen(contact) && !is_unsubscribed(contact)"
+            [disabled]="is_unsubscribed(contact)"
+            [attr.data-testid]="'recipient-option-' + contact.contact_id"
+          >
+            <span matListItemTitle>{{ contact.display_name }}</span>
+            <span matListItemLine>{{ contact.email_address }}</span>
+            @if (is_unsubscribed(contact)) {
+              <span matListItemMeta class="recipient-picker__meta">
+                <hch-status-chip
+                  [label]="t(unsubscribed_presentation.label)"
+                  [tone]="unsubscribed_presentation.tone"
+                  [icon]="unsubscribed_presentation.icon"
+                  [compact]="true"
+                ></hch-status-chip>
+              </span>
+            }
+          </mat-list-option>
+        }
+      </mat-selection-list>
+    }
+  }
+</div>

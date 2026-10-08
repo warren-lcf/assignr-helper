@@ -1,0 +1,133 @@
+<hch-page-container
+  [title]="t('Email drafts')"
+  icon="mail"
+  [subtitle]="t('Write and send a games available email to your contacts')"
+  [header_actions]="header_actions()"
+>
+  @if (is_loading()) {
+    <div
+      class="email-drafts__grid"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading email drafts')"
+      data-testid="email-drafts-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-card [line_count]="4"></hch-skeleton-card>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Email drafts could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="email-drafts-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to email')"
+      [description]="t('Ask a tenant owner to give your role access to sending email.')"
+      data-testid="email-drafts-no-access"
+    ></hch-empty-state>
+  } @else if (load_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="
+        needs_tenant() ? t('Choose a tenant first') : t('Email drafts could not be loaded')
+      "
+      [description]="
+        needs_tenant()
+          ? t('Pick the tenant to act in from the header, then try again.')
+          : t('Check your connection and try again.')
+      "
+      [action_label]="t('Try again')"
+      action_testid="email-drafts-retry"
+      (action_clicked)="retry()"
+      data-testid="email-drafts-error"
+    ></hch-empty-state>
+  } @else if (editor_target(); as target) {
+    <app-draft-editor
+      [draft_id]="target.draft_id"
+      [contacts]="contact_list()"
+      [settings]="settings.hasValue() ? settings.value() : undefined"
+      (draft_changed)="drafts.reload()"
+      (closed)="on_editor_closed($event)"
+      (settings_requested)="on_settings_requested()"
+    ></app-draft-editor>
+  } @else {
+    @if (show_not_configured_banner()) {
+      <div class="email-drafts__banner" role="status" data-testid="email-not-configured-banner">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        <span class="email-drafts__banner-text">
+          <strong>{{ t('Sending is not set up yet.') }}</strong>
+          {{ t('Add your SendGrid API key and sender address before you send an email.') }}
+        </span>
+        <button
+          mat-stroked-button
+          type="button"
+          data-testid="email-not-configured-setup"
+          (click)="on_settings_requested()"
+        >
+          {{ t('Set up sending') }}
+        </button>
+      </div>
+    }
+
+    <hch-responsive-tab-select
+      class="email-drafts__views"
+      data-testid="email-view-tabs"
+      [options]="view_options()"
+      [active_tab]="view()"
+      (active_tab_selected)="on_view_selected($event)"
+    ></hch-responsive-tab-select>
+
+    @if (view() === views.DRAFTS) {
+      @if (draft_list().length === 0) {
+        <hch-empty-state
+          icon="drafts"
+          [headline]="t('No email drafts yet')"
+          [description]="
+            t(
+              'Write a games available email, preview it, send yourself a test, then send it to the people who agreed to receive it.'
+            )
+          "
+          [action_label]="t('New draft')"
+          action_testid="email-drafts-empty-new"
+          (action_clicked)="on_new_draft_requested()"
+          data-testid="email-drafts-empty"
+        ></hch-empty-state>
+      } @else {
+        <p
+          class="email-drafts__count"
+          role="status"
+          aria-live="polite"
+          data-testid="email-drafts-count"
+        >
+          {{ count_text() }}
+        </p>
+        <div class="email-drafts__grid" data-testid="email-drafts-list">
+          <app-drafts-list
+            [drafts]="draft_list()"
+            [busy_draft_id]="busy_draft_id()"
+            (open_requested)="on_open_draft_requested($event)"
+            (delete_requested)="on_delete_draft_requested($event)"
+          ></app-drafts-list>
+        </div>
+      }
+    } @else {
+      <app-contacts-panel
+        [contacts]="contact_list()"
+        [is_loading]="contacts_loading()"
+        [load_failed]="contacts_failed()"
+        [busy_contact_id]="busy_contact_id()"
+        (add_requested)="on_add_contact_requested()"
+        (import_requested)="on_import_requested()"
+        (delete_requested)="on_delete_contact_requested($event)"
+        (retry_requested)="contacts.reload()"
+      ></app-contacts-panel>
+    }
+  }
+</hch-page-container>
