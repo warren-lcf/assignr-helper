@@ -1,6 +1,9 @@
 import type { Express } from 'express';
 import { create_app } from './app.js';
 import { read_trusted_proxy_hops } from './config/read_trusted_proxy_hops.js';
+import { CALENDAR_FEED_LIMITS } from './calendar_feed/calendar_feed_limits.constant.js';
+import { create_calendar_feed_router } from './calendar_feed/calendar_feed.routes.js';
+import { create_public_calendar_feed_router } from './calendar_feed/public_calendar_feed.routes.js';
 import { create_connections_admin_router } from './connections/connections_admin.routes.js';
 import { create_contacts_router } from './contacts/contacts.routes.js';
 import { create_email_drafts_router } from './email_drafts/email_drafts.routes.js';
@@ -16,14 +19,17 @@ import { create_public_unsubscribe_router } from './unsubscribe/public_unsubscri
 import { create_sync_router } from './sync/sync.routes.js';
 
 /**
- * Builds the real application: public routes (health, the quick-link games behind a token, and
- * the unsubscribe link behind a signed token), then the auth middleware, then the protected
- * routes (who am I, connections, games, match reports, sync, quick-link management, contacts, email settings
- * and email drafts). Throws at start-up when the environment is incomplete.
+ * Builds the real application: public routes (health, the quick-link games behind a token, the
+ * calendar feed behind a token, and the unsubscribe link behind a signed token), then the auth
+ * middleware, then the protected routes (who am I, connections, games, match reports, sync,
+ * quick-link management, the calendar feed link, contacts, email settings and email drafts).
+ * Throws at start-up when the environment is incomplete.
  *
  * Public rate limits are per client address and per function instance, separately for quick
  * links and for unsubscribe links: 60 requests a minute for any request, and a stricter 20 a
- * minute for requests whose token opens nothing. Test emails are limited to a burst of 5 and
+ * minute for requests whose token opens nothing. The calendar feed allows 600 requests a minute
+ * per address because calendar providers fetch for many people from shared addresses, while its
+ * failed lookups stay at 20 a minute. Test emails are limited to a burst of 5 and
  * then one every two minutes per tenant and user. The
  * address comes from `X-Forwarded-For` trusting `TRUSTED_PROXY_HOPS` proxies (see
  * `read_trusted_proxy_hops`). Counters are in memory, so the limits are not shared across
@@ -49,6 +55,14 @@ export function create_production_app(env: NodeJS.ProcessEnv = process.env): Exp
           service: context.public_quick_link_service,
           request_limiter: make_limiter(60),
           failure_limiter: make_limiter(20),
+        }),
+      );
+      app.use(
+        '/api',
+        create_public_calendar_feed_router({
+          service: context.public_calendar_feed_service,
+          request_limiter: make_limiter(CALENDAR_FEED_LIMITS.REQUESTS_PER_MINUTE_PER_IP),
+          failure_limiter: make_limiter(CALENDAR_FEED_LIMITS.FAILED_LOOKUPS_PER_MINUTE_PER_IP),
         }),
       );
       app.use(
@@ -91,6 +105,13 @@ export function create_production_app(env: NodeJS.ProcessEnv = process.env): Exp
         '/api',
         create_quick_links_router({
           quick_link_service: context.quick_link_service,
+          permission_service: context.auth.permission_service,
+        }),
+      );
+      app.use(
+        '/api',
+        create_calendar_feed_router({
+          feed_service: context.calendar_feed_admin_service,
           permission_service: context.auth.permission_service,
         }),
       );

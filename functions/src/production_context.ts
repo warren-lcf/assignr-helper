@@ -12,6 +12,10 @@ import { FirebaseTokenVerifier } from './auth/firebase_token_verifier.js';
 import { IAppAuth } from './auth/models/app_auth.model.js';
 import { SpannerMembershipResolver } from './auth/spanner_membership_resolver.js';
 import { StaticRoleStore } from './auth/static_role_store.js';
+import { CalendarFeedAdminService } from './calendar_feed/calendar_feed_admin.service.js';
+import { ICalendarFeedStore } from './calendar_feed/ports/calendar_feed_store.interface.js';
+import { PublicCalendarFeedService } from './calendar_feed/public_calendar_feed.service.js';
+import { SpannerCalendarFeedStore } from './calendar_feed/stores/spanner_calendar_feed_store.js';
 import { read_public_app_origin } from './config/read_public_app_origin.js';
 import { require_env } from './config/require_env.js';
 import { ContactService } from './contacts/contact.service.js';
@@ -66,6 +70,9 @@ export interface IProductionContext {
   quick_links: IQuickLinkStore;
   quick_link_service: QuickLinkService;
   public_quick_link_service: PublicQuickLinkService;
+  calendar_feeds: ICalendarFeedStore;
+  calendar_feed_admin_service: CalendarFeedAdminService;
+  public_calendar_feed_service: PublicCalendarFeedService;
   contacts: IContactStore;
   contact_service: ContactService;
   email_settings_service: EmailSettingsService;
@@ -103,6 +110,7 @@ export function create_production_context(
   const organizations = new SpannerOrganizationStore(database);
   const venues = new SpannerVenueStore(database);
   const quick_links = new SpannerQuickLinkStore(database);
+  const calendar_feeds = new SpannerCalendarFeedStore(database);
   const match_reports = new SpannerMatchReportStore(database);
   const contacts = new SpannerContactStore(database);
   const email_drafts = new SpannerEmailDraftStore(database);
@@ -193,6 +201,16 @@ export function create_production_context(
       quick_links,
       games,
       venues,
+      now: Date.now,
+    }),
+    calendar_feeds,
+    calendar_feed_admin_service: new CalendarFeedAdminService({ feeds: calendar_feeds, audit }),
+    public_calendar_feed_service: new PublicCalendarFeedService({
+      feeds: calendar_feeds,
+      games,
+      venues,
+      organizations,
+      public_app_origin,
       now: Date.now,
     }),
     contacts,
