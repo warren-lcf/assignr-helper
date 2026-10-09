@@ -1,0 +1,11 @@
+<p
+  class="save-status"
+  [class.save-status--waiting]="is_waiting()"
+  role="status"
+  aria-live="polite"
+  [attr.data-state]="state()"
+  data-testid="match-report-save-status"
+>
+  <mat-icon aria-hidden="true">{{ icon() }}</mat-icon>
+  <span data-testid="match-report-save-label">{{ label() }}</span>
+</p>

@@ -1,0 +1,72 @@
+<mat-card
+  appearance="outlined"
+  class="report-row"
+  [attr.data-testid]="'report-row-' + game().game_id"
+>
+  <mat-card-content class="report-row__content">
+    <p class="report-row__time" [attr.data-testid]="'report-time-' + game().game_id">
+      {{ game().start_at | hchUserDate: time_format : game().time_zone }}
+    </p>
+
+    <div class="report-row__body">
+      <p class="report-row__title" [attr.data-testid]="'report-title-' + game().game_id">
+        {{ title() }}
+      </p>
+      <p class="report-row__meta">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        <span class="report-row__visually-hidden">{{ t('Date') }}:</span>
+        <span>{{ date_text() }}</span>
+      </p>
+      @if (game().venue_name; as venue_name) {
+        <p class="report-row__meta">
+          <mat-icon aria-hidden="true">place</mat-icon>
+          <span class="report-row__visually-hidden">{{ t('Venue') }}:</span>
+          <span>{{ venue_name }}</span>
+        </p>
+      }
+
+      <div>
+        <hch-status-chip
+          [label]="t(status().label)"
+          [tone]="status().tone"
+          [icon]="status().icon"
+          [attr.data-testid]="'report-status-' + game().game_id"
+        ></hch-status-chip>
+      </div>
+
+      @if (report(); as report) {
+        <dl class="report-row__facts">
+          <div class="report-row__fact">
+            <dt>{{ t('Score') }}</dt>
+            <dd [attr.data-testid]="'report-score-' + game().game_id">{{ score_text() }}</dd>
+          </div>
+          <div class="report-row__fact">
+            <dt>{{ t('Yellow cards') }}</dt>
+            <dd [attr.data-testid]="'report-yellow-' + game().game_id">
+              {{ report.yellow_count }}
+            </dd>
+          </div>
+          <div class="report-row__fact">
+            <dt>{{ t('Red cards') }}</dt>
+            <dd [attr.data-testid]="'report-red-' + game().game_id">{{ report.red_count }}</dd>
+          </div>
+        </dl>
+      }
+    </div>
+  </mat-card-content>
+
+  @if (can_open()) {
+    <mat-card-actions align="end">
+      <button
+        mat-stroked-button
+        type="button"
+        class="report-row__action"
+        [attr.aria-label]="action_name()"
+        [attr.data-testid]="'report-open-' + game().game_id"
+        (click)="open_requested.emit(entry())"
+      >
+        {{ action_label() }}
+      </button>
+    </mat-card-actions>
+  }
+</mat-card>

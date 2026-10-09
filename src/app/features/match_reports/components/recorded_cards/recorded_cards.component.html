@@ -1,0 +1,67 @@
+<mat-card appearance="outlined" class="recorded-cards" data-testid="match-report-recorded-cards">
+  <hch-card-header
+    icon="format_list_numbered"
+    [title]="t('Cards recorded')"
+    [subtitle]="count_text()"
+    [heading_level]="2"
+  ></hch-card-header>
+
+  <mat-card-content>
+    @if (incidents().length === 0) {
+      <p class="recorded-cards__empty" data-testid="recorded-cards-empty">
+        {{ t('No cards recorded.') }}
+      </p>
+    } @else {
+      <ul class="recorded-cards__list">
+        @for (incident of incidents(); track incident.idempotency_key; let index = $index) {
+          <li class="recorded-cards__item" data-testid="recorded-card">
+            <div class="recorded-cards__body">
+              <p class="recorded-cards__type">
+                <mat-icon aria-hidden="true">{{
+                  presentation[incident.incident_type].icon
+                }}</mat-icon>
+                <span data-testid="recorded-card-type">{{
+                  t(presentation[incident.incident_type].label)
+                }}</span>
+              </p>
+              <p class="recorded-cards__team" data-testid="recorded-card-team">
+                {{ team_name(incident) }}
+              </p>
+              <p class="recorded-cards__facts">
+                <span data-testid="recorded-card-number">{{ number_text(incident) }}</span>
+                @if (incident.minute !== null) {
+                  <span class="recorded-cards__minute" data-testid="recorded-card-minute">{{
+                    minute_text(incident)
+                  }}</span>
+                }
+              </p>
+              @if (reason_text(incident); as reason) {
+                <p class="recorded-cards__reason" data-testid="recorded-card-reason">
+                  {{ reason }}
+                </p>
+              }
+            </div>
+            <button
+              mat-stroked-button
+              type="button"
+              class="recorded-cards__remove"
+              [disabled]="disabled()"
+              [attr.aria-label]="
+                t('Remove card {{number}} ({{card}} for {{team}})', {
+                  number: index + 1,
+                  card: t(presentation[incident.incident_type].label),
+                  team: team_name(incident),
+                })
+              "
+              data-testid="recorded-card-remove"
+              (click)="remove_requested.emit(incident)"
+            >
+              <mat-icon aria-hidden="true">delete</mat-icon>
+              {{ t('Remove') }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </mat-card-content>
+</mat-card>

@@ -68,6 +68,19 @@ describe('create_production_app', () => {
     expect((await request(app).post('/api/quick_links/l1/revoke')).status).toBe(401);
   });
 
+  it('protects every match report route', async () => {
+    const app = create_production_app(ENV);
+
+    expect((await request(app).post('/api/match_reports').send({})).status).toBe(401);
+    expect((await request(app).get('/api/match_reports')).status).toBe(401);
+    expect((await request(app).get('/api/match_reports/r1')).status).toBe(401);
+    expect((await request(app).put('/api/match_reports/r1/scores').send({})).status).toBe(401);
+    expect((await request(app).post('/api/match_reports/r1/incidents').send({})).status).toBe(401);
+    expect((await request(app).delete('/api/match_reports/r1/incidents/i1')).status).toBe(401);
+    expect((await request(app).post('/api/match_reports/r1/ready')).status).toBe(401);
+    expect((await request(app).post('/api/match_reports/r1/reopen')).status).toBe(401);
+  });
+
   it('refuses to start with a PUBLIC_APP_ORIGIN that is not a bare https origin', () => {
     for (const bad of ['http://app.example.test', 'https://app.example.test/app', 'nonsense']) {
       expect(() => create_production_app({ ...ENV, PUBLIC_APP_ORIGIN: bad })).toThrow(

@@ -33,6 +33,18 @@ export class InMemoryGameStore implements IGameStore {
   }
 
   /**
+   * Reads one stored game of a tenant by its id.
+   * @param tenant_id Owning tenant.
+   * @param game_id Game id.
+   * @returns A copy of the game (removed games included), or null when this tenant has none with
+   *   that id.
+   */
+  public async get_game(tenant_id: string, game_id: string): Promise<IStoredGame | null> {
+    const row = this.rows.get(game_id);
+    return row && row.tenant_id === tenant_id ? structuredClone(row) : null;
+  }
+
+  /**
    * Inserts or replaces games by `game_id`, storing copies.
    * @param games Complete rows to persist.
    * @returns Resolves when every row is saved.

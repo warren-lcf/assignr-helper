@@ -7,6 +7,7 @@ import { create_email_drafts_router } from './email_drafts/email_drafts.routes.j
 import { create_email_settings_router } from './email_settings/email_settings.routes.js';
 import { create_connections_router } from './connections/connections.routes.js';
 import { create_games_router } from './games/games.routes.js';
+import { create_match_reports_router } from './match_reports/match_reports.routes.js';
 import { TokenBucketRateLimiter } from './http/rate_limit/token_bucket_rate_limiter.js';
 import { create_production_context } from './production_context.js';
 import { create_public_quick_links_router } from './quick_links/public_quick_links.routes.js';
@@ -17,7 +18,7 @@ import { create_sync_router } from './sync/sync.routes.js';
 /**
  * Builds the real application: public routes (health, the quick-link games behind a token, and
  * the unsubscribe link behind a signed token), then the auth middleware, then the protected
- * routes (who am I, connections, games, sync, quick-link management, contacts, email settings
+ * routes (who am I, connections, games, match reports, sync, quick-link management, contacts, email settings
  * and email drafts). Throws at start-up when the environment is incomplete.
  *
  * Public rate limits are per client address and per function instance, separately for quick
@@ -76,6 +77,13 @@ export function create_production_app(env: NodeJS.ProcessEnv = process.env): Exp
         '/api',
         create_games_router({
           games_service: context.games_service,
+          permission_service: context.auth.permission_service,
+        }),
+      );
+      app.use(
+        '/api',
+        create_match_reports_router({
+          report_service: context.match_report_service,
           permission_service: context.auth.permission_service,
         }),
       );

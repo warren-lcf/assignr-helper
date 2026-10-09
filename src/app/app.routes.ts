@@ -29,7 +29,16 @@ const feature_loaders: Readonly<Record<string, () => Promise<Type<unknown>>>> = 
     import('./features/quick_links/components/quick_links_page/quick_links_page.component').then(
       (module) => module.QuickLinksPageComponent,
     ),
+  'match-reports': () =>
+    import('./features/match_reports/components/match_reports_page/match_reports_page.component').then(
+      (module) => module.MatchReportsPageComponent,
+    ),
 };
+
+/** The nav entry the match report entry screen belongs to, so it shares its title, icon and breadcrumb. */
+const match_reports_definition = NAV_DEFINITIONS.find(
+  (definition) => definition.path === 'match-reports',
+);
 
 /** Each nav entry gets a guarded route; the placeholder is swapped for the real feature as it is built. */
 const feature_routes: Route[] = NAV_DEFINITIONS.map((definition) => ({
@@ -66,5 +75,19 @@ export const routes: Routes = [
   },
   { path: '', pathMatch: 'full', redirectTo: landing_path },
   ...feature_routes,
+  {
+    // The report entry screen for one game; the list is the `match-reports` entry above.
+    path: 'match-reports/:game_id',
+    canActivate: [auth_guard],
+    loadComponent: () =>
+      import('./features/match_reports/components/match_report_entry_page/match_report_entry_page.component').then(
+        (module) => module.MatchReportEntryPageComponent,
+      ),
+    data: {
+      title: match_reports_definition?.label,
+      icon: match_reports_definition?.icon,
+      breadcrumb: match_reports_definition?.label,
+    },
+  },
   { path: '**', redirectTo: landing_path },
 ];

@@ -1,0 +1,145 @@
+<section class="finish" data-testid="match-report-finish">
+  @if (!is_draft()) {
+    <div data-testid="finish-ready-banner">
+      <hch-banner
+        [severity]="banner_severity"
+        [title]="status_title()"
+        [message]="t('Reports stay in this app for now.')"
+      ></hch-banner>
+    </div>
+  }
+
+  @if (shows_summary()) {
+    <mat-card appearance="outlined" class="finish__summary" data-testid="finish-summary">
+      <hch-card-header
+        icon="fact_check"
+        [title]="t('Report summary')"
+        [heading_level]="2"
+      ></hch-card-header>
+
+      <mat-card-content class="finish__content">
+        <dl class="finish__facts">
+          <div class="finish__fact">
+            <dt>{{ t('{{team}} (home)', { team: home_name() }) }}</dt>
+            <dd data-testid="finish-score-home">{{ score_text(report().home_score) }}</dd>
+          </div>
+          <div class="finish__fact">
+            <dt>{{ t('{{team}} (away)', { team: away_name() }) }}</dt>
+            <dd data-testid="finish-score-away">{{ score_text(report().away_score) }}</dd>
+          </div>
+        </dl>
+
+        <h3 class="finish__heading">{{ t('Cards') }}</h3>
+        @for (team of teams(); track team.key) {
+          <div class="finish__team" [attr.data-testid]="'finish-cards-' + team.key">
+            <h4 class="finish__team-name">{{ team.name }}</h4>
+            @if (has_no_cards(team.counts)) {
+              <p class="finish__none" [attr.data-testid]="'finish-cards-' + team.key + '-none'">
+                {{ t('No cards') }}
+              </p>
+            } @else {
+              <dl class="finish__facts">
+                <div class="finish__fact">
+                  <dt>{{ t('Yellow card') }}</dt>
+                  <dd [attr.data-testid]="'finish-cards-' + team.key + '-yellow'">
+                    {{ team.counts.yellow }}
+                  </dd>
+                </div>
+                <div class="finish__fact">
+                  <dt>{{ t('Second yellow') }}</dt>
+                  <dd [attr.data-testid]="'finish-cards-' + team.key + '-second-yellow'">
+                    {{ team.counts.second_yellow }}
+                  </dd>
+                </div>
+                <div class="finish__fact">
+                  <dt>{{ t('Red card') }}</dt>
+                  <dd [attr.data-testid]="'finish-cards-' + team.key + '-red'">
+                    {{ team.counts.red }}
+                  </dd>
+                </div>
+              </dl>
+            }
+          </div>
+        }
+
+        @if (is_draft() && missing().length > 0) {
+          <div class="finish__note" role="note" data-testid="finish-missing">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <div>
+              <p class="finish__note-title">{{ t('Still missing') }}</p>
+              <ul>
+                @for (item of missing(); track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+
+        @if (is_draft() && blockers().length > 0) {
+          <div
+            class="finish__note finish__note--blocked"
+            role="alert"
+            data-testid="finish-blockers"
+          >
+            <mat-icon aria-hidden="true">error</mat-icon>
+            <div>
+              <p class="finish__note-title">{{ t('This report cannot be marked ready yet') }}</p>
+              <ul>
+                @for (blocker of blockers(); track blocker.path) {
+                  <li data-testid="finish-blocker">{{ blocker.message }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+      </mat-card-content>
+
+      <mat-card-actions class="finish__actions">
+        @if (is_draft()) {
+          @if (pending_count() > 0) {
+            <p class="finish__waiting" aria-live="polite" data-testid="finish-waiting">
+              {{ waiting_text() }}
+            </p>
+          }
+          <button
+            mat-flat-button
+            type="button"
+            class="finish__primary"
+            [disabled]="!can_mark_ready()"
+            [attr.aria-busy]="is_busy()"
+            data-testid="finish-mark-ready"
+            (click)="mark_ready_requested.emit()"
+          >
+            <mat-icon aria-hidden="true">check_circle</mat-icon>
+            {{ t('Mark ready') }}
+          </button>
+        } @else if (can_reopen()) {
+          <button
+            mat-stroked-button
+            type="button"
+            class="finish__secondary"
+            [disabled]="is_busy()"
+            [attr.aria-busy]="is_busy()"
+            data-testid="finish-reopen"
+            (click)="reopen_requested.emit()"
+          >
+            <mat-icon aria-hidden="true">edit</mat-icon>
+            {{ t('Reopen to edit') }}
+          </button>
+        }
+      </mat-card-actions>
+    </mat-card>
+  } @else {
+    <button
+      mat-flat-button
+      type="button"
+      class="finish__primary"
+      data-testid="finish-open"
+      (click)="is_open.set(true)"
+    >
+      <mat-icon aria-hidden="true">flag</mat-icon>
+      {{ t('Finish report') }}
+    </button>
+  }
+</section>

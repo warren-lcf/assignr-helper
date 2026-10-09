@@ -1,0 +1,116 @@
+<hch-page-container
+  [title]="t('Match reports')"
+  icon="assignment"
+  [subtitle]="t('Record the score and cards right after a game')"
+>
+  @if (is_loading()) {
+    <div
+      class="reports-page__loading"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading match reports')"
+      data-testid="reports-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-line height="96px"></hch-skeleton-line>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Match reports could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="reports-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to match reports')"
+      [description]="t('Ask a tenant owner to give your role access to match reports.')"
+      data-testid="reports-no-access"
+    ></hch-empty-state>
+  } @else if (load_error(); as error) {
+    <hch-empty-state
+      icon="error"
+      [headline]="error.headline"
+      [description]="error.description"
+      [action_label]="can_retry() ? t('Try again') : undefined"
+      action_testid="reports-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (is_empty()) {
+    <hch-empty-state
+      icon="assignment_turned_in"
+      [headline]="t('No games to report')"
+      [description]="t('Games you have refereed in the last 7 days appear here once they start.')"
+      [action_label]="t('Go to Games')"
+      action_testid="reports-empty-games"
+      (action_clicked)="go_to_games()"
+    ></hch-empty-state>
+  } @else {
+    @if (top_entry(); as top) {
+      <button
+        mat-flat-button
+        type="button"
+        class="reports-page__giant"
+        [attr.aria-label]="t('Report this game: {{game}}', { game: top_title() })"
+        data-testid="reports-report-latest"
+        (click)="open_report(top)"
+      >
+        <span class="reports-page__giant-text">
+          <span class="reports-page__giant-label">
+            <mat-icon aria-hidden="true">edit_note</mat-icon>
+            {{ t('Report this game') }}
+          </span>
+          <span class="reports-page__giant-game">{{ top_title() }}</span>
+        </span>
+      </button>
+    }
+
+    <p class="reports-page__count" role="status" aria-live="polite" data-testid="reports-count">
+      {{ count_text() }}
+    </p>
+
+    <section class="reports-page__section" data-testid="reports-needs-report">
+      <h2 class="reports-page__heading">
+        {{ t('Needs a report') }}
+        <span class="reports-page__badge" data-testid="reports-needs-count">{{
+          needs_report().length
+        }}</span>
+      </h2>
+      @if (needs_report().length === 0) {
+        <p class="reports-page__caught-up" data-testid="reports-caught-up">
+          {{ t('You are all caught up.') }}
+        </p>
+      } @else {
+        @for (entry of needs_report(); track entry.game.game_id) {
+          <app-report-game-row
+            [entry]="entry"
+            [can_open]="can_write()"
+            (open_requested)="open_report($event)"
+          ></app-report-game-row>
+        }
+      }
+    </section>
+
+    @if (reported().length > 0) {
+      <section class="reports-page__section" data-testid="reports-reported">
+        <h2 class="reports-page__heading">
+          {{ t('Reported') }}
+          <span class="reports-page__badge" data-testid="reports-reported-count">{{
+            reported().length
+          }}</span>
+        </h2>
+        @for (entry of reported(); track entry.game.game_id) {
+          <app-report-game-row
+            [entry]="entry"
+            [can_open]="can_write()"
+            (open_requested)="open_report($event)"
+          ></app-report-game-row>
+        }
+      </section>
+    }
+  }
+</hch-page-container>
