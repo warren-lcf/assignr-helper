@@ -3,6 +3,7 @@ import { IStoredOrganization } from '../../sync/models/stored_organization.model
 import { IStoredVenue } from '../../sync/models/stored_venue.model.js';
 import { GameSlotState } from './game_slot_state.enum.js';
 import { IGameSlotView } from './game_slot_view.model.js';
+import { valid_time_zone_or_null } from '../time/valid_time_zone_or_null.js';
 import { IGameView } from './game_view.model.js';
 
 /**
@@ -44,6 +45,8 @@ export function to_game_view(
     venue_name: venue?.name ?? null,
     location_group: venue?.location_group ?? null,
     local_date: game.local_date,
+    time_zone:
+      valid_time_zone_or_null(game.game_time_zone) ?? valid_time_zone_or_null(venue?.time_zone),
     start_at: game.start_at,
     end_at: game.end_at,
     status: game.status,

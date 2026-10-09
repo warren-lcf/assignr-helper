@@ -24,6 +24,7 @@ interface IMockGame {
   venue_name: string | null;
   location_group: string;
   local_date: number | null;
+  time_zone: string | null;
   start_at: number;
   end_at: number | null;
   status: 'SCHEDULED' | 'CANCELLED';
@@ -56,6 +57,7 @@ function make_game(game_id: string, overrides: Partial<IMockGame>): IMockGame {
     venue_name: 'Field 3',
     location_group: 'Riverside Park',
     local_date,
+    time_zone: 'America/Chicago',
     start_at: (local_date ?? SATURDAY) + 14 * HOUR_MS,
     end_at: null,
     status: 'SCHEDULED',
@@ -374,9 +376,10 @@ test.describe('games page', () => {
     await expect(locations.nth(2)).toContainText('Location to be announced');
 
     const riverside = page.getByTestId('games-location-1');
-    await expect(riverside.getByRole('heading', { level: 3 })).toHaveText(['Oct 10, 2026']);
+    await expect(riverside.getByRole('heading', { level: 3 })).toHaveText(['Saturday, Oct 10']);
     await expect(page.getByTestId('games-date-1-0').getByRole('listitem')).toHaveCount(1);
-    await expect(page.getByTestId('game-time-g1')).toHaveText('2:00 PM');
+    // 14:00 UTC is 9:00 AM on the venue's Chicago clock, whatever zone the viewer is in.
+    await expect(page.getByTestId('game-time-g1')).toHaveText('9:00 AM CDT');
     await expect(page.getByTestId('game-title-g1')).toHaveText('Lions vs Tigers');
     await expect(page.getByTestId('game-slots-g1')).toContainText('1 open of 2 slots');
 

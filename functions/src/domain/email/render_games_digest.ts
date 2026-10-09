@@ -1,6 +1,7 @@
 import escape_html from 'escape-html';
 import { IGameListItem } from '../games/game_list_item.model.js';
 import { resolve_time_zone } from '../time/resolve_time_zone.js';
+import { valid_time_zone_or_null } from '../time/valid_time_zone_or_null.js';
 import { IDigestInput } from './digest_input.model.js';
 import { IDigestLabels } from './digest_labels.model.js';
 import { IRenderedDigest } from './rendered_digest.model.js';
@@ -185,7 +186,11 @@ export function render_games_digest(input: IDigestInput, labels: IDigestLabels):
       text_lines.push(`  ${heading}`);
 
       for (const game of date.games) {
-        const view = build_game_row_view(game, labels, time_zone);
+        const view = build_game_row_view(
+          game,
+          labels,
+          valid_time_zone_or_null(game.time_zone) ?? time_zone,
+        );
         const details_html =
           view.details.length > 0
             ? `<div style="margin-top:2px;font-size:13px;line-height:18px;color:${COLOR_MUTED};">${escape_html(view.details.join(' · '))}</div>`

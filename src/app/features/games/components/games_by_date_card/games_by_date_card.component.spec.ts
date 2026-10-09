@@ -50,7 +50,7 @@ describe('GamesByDateCardComponent', () => {
       row.getAttribute('data-testid'),
     );
 
-    expect(dates).toEqual(['Oct 10, 2026', 'Oct 11, 2026']);
+    expect(dates).toEqual(['Saturday, Oct 10', 'Sunday, Oct 11']);
     expect(rows).toEqual(['game-row-game-1', 'game-row-game-2', 'game-row-sun']);
   });
 

@@ -8,6 +8,8 @@ import { IGameSlotView } from './game_slot_view.model.js';
  * item so the view itself is grouped and returned, with no second projection.
  */
 export interface IGameView extends IGameListItem {
+  /** IANA zone the game is played in (its own, else its venue's), or null when unknown. */
+  time_zone: string | null;
   /** Our id of the connection the game came from. */
   connection_id: string;
   /** Our id of the assignor organization. */

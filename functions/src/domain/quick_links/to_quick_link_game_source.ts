@@ -1,3 +1,4 @@
+import { valid_time_zone_or_null } from '../time/valid_time_zone_or_null.js';
 import { IStoredGame } from '../../sync/models/stored_game.model.js';
 import { IStoredVenue } from '../../sync/models/stored_venue.model.js';
 import { IQuickLinkGameSource } from './quick_link_game_source.model.js';
@@ -24,6 +25,8 @@ export function to_quick_link_game_source(
     is_open: game.is_open,
     start_at: game.start_at,
     local_date: game.local_date,
+    time_zone:
+      valid_time_zone_or_null(game.game_time_zone) ?? valid_time_zone_or_null(venue?.time_zone),
     venue_name: venue?.name ?? null,
     location_group: venue?.location_group ?? null,
     level: game.level,

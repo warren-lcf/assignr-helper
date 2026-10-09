@@ -4,7 +4,7 @@
   [attr.data-testid]="'game-row-' + game().game_id"
 >
   <p class="game-row__time" [attr.data-testid]="'game-time-' + game().game_id">
-    {{ game().start_at | hchUserDate: time_format }}
+    {{ game().start_at | hchUserDate: time_format : game().time_zone }}
   </p>
 
   <div class="game-row__body">

@@ -32,7 +32,9 @@ describe('PublicLocationCardComponent', () => {
 
     expect(sections).toHaveLength(2);
     expect(sections[0].getAttribute('aria-labelledby')).toBe('public-date-heading-2-0');
-    expect(element.querySelector('#public-date-heading-2-0')?.textContent).toMatch(/2026/);
+    expect(element.querySelector('#public-date-heading-2-0')?.textContent).toContain(
+      'Saturday, Oct 10',
+    );
     expect(
       Array.from(sections[0].querySelectorAll('[data-testid^="public-game-title-"]')).map((node) =>
         node.textContent?.trim(),

@@ -12,6 +12,8 @@ export interface IGameView {
   location_group: string;
   /** UTC-midnight milliseconds of the venue-local calendar date; null when unknown. */
   local_date: number | null;
+  /** IANA zone the game is played in, or null when unknown. */
+  time_zone: string | null;
   /** Kick-off, UTC milliseconds. */
   start_at: number;
   /** End, UTC milliseconds; null when unknown. */

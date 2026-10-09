@@ -1,14 +1,18 @@
 import { TestBed } from '@angular/core/testing';
+import { USER_DATE_TIMEZONE } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { RIVERSIDE_LOCATION, UNKNOWN_LOCATION } from '../../mocks/game_view.mock';
 import { make_translation_service_double } from '../../mocks/translation_service.mock';
 import { IGameLocationGroup } from '../../models/game_location_group.model';
 import { GameLocationCardComponent } from './game_location_card.component';
 
-function render(location: IGameLocationGroup, index = 0) {
+function render(location: IGameLocationGroup, index = 0, viewer_zone?: string) {
   TestBed.configureTestingModule({
     imports: [GameLocationCardComponent],
-    providers: [{ provide: AppTranslationService, useValue: make_translation_service_double() }],
+    providers: [
+      { provide: AppTranslationService, useValue: make_translation_service_double() },
+      ...(viewer_zone ? [{ provide: USER_DATE_TIMEZONE, useValue: () => viewer_zone }] : []),
+    ],
   });
   const fixture = TestBed.createComponent(GameLocationCardComponent);
   fixture.componentRef.setInput('location', location);
@@ -35,7 +39,7 @@ describe('GameLocationCardComponent', () => {
       heading.textContent?.trim(),
     );
 
-    expect(dates).toEqual(['Oct 10, 2026', 'Oct 11, 2026']);
+    expect(dates).toEqual(['Saturday, Oct 10', 'Sunday, Oct 11']);
   });
 
   it("lists each date's games in the order given, as list items", () => {
@@ -62,7 +66,9 @@ describe('GameLocationCardComponent', () => {
     const section = element.querySelector('section');
 
     expect(section?.getAttribute('aria-labelledby')).toBe('games-date-heading-1-0');
-    expect(element.querySelector('#games-date-heading-1-0')?.textContent).toContain('Oct 10, 2026');
+    expect(element.querySelector('#games-date-heading-1-0')?.textContent).toContain(
+      'Saturday, Oct 10',
+    );
   });
 
   it('translates the placeholder location and the unknown date', () => {
@@ -73,5 +79,15 @@ describe('GameLocationCardComponent', () => {
     );
     expect(element.querySelector('h3')?.textContent).toContain('Date to be announced');
     expect(element.textContent).toContain('1 game');
+  });
+
+  it('names the weekday of the calendar date even for a viewer west of UTC', () => {
+    const { element } = render(RIVERSIDE_LOCATION, 0, 'Pacific/Honolulu');
+    const dates = Array.from(element.querySelectorAll('h3')).map((heading) =>
+      heading.textContent?.trim(),
+    );
+
+    // A date stored as UTC midnight would read a day early (Friday) if it were formatted in the viewer zone.
+    expect(dates).toEqual(['Saturday, Oct 10', 'Sunday, Oct 11']);
   });
 });
