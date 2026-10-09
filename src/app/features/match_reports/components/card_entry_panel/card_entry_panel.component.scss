@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.card-entry {
+  min-width: 0;
+}
+
+.card-entry__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.card-entry__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.card-entry__heading {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-small);
+}
+
+.card-entry__number-actions,
+.card-entry__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+// Secondary controls stay at least 56 px high.
+.card-entry__small-button {
+  min-height: 56px;
+  min-width: 56px;
+
+  &--selected {
+    border-width: 3px;
+    border-color: var(--mat-sys-primary);
+    background-color: var(--mat-sys-secondary-container);
+  }
+}
+
+.card-entry__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+// The one primary action of the panel: a full-width, 72 px target.
+.card-entry__add {
+  min-height: 72px;
+  width: 100%;
+  font-size: 20px;
+}
+
+.card-entry__hint {
+  margin: 0;
+  min-height: 20px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}

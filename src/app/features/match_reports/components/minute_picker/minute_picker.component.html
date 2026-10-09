@@ -1,0 +1,32 @@
+<div class="minute-picker" data-testid="card-minute">
+  <hch-score-stepper
+    [label]="t('Minute')"
+    [value]="minute()"
+    [min]="min"
+    [max]="max"
+    [disabled]="disabled()"
+    [decrease_label]="t('One minute earlier')"
+    [increase_label]="t('One minute later')"
+    (valueChange)="minute_changed.emit($event)"
+  ></hch-score-stepper>
+
+  <div class="minute-picker__quick" role="group" [attr.aria-label]="t('Quick minutes')">
+    @for (value of quick_values; track value) {
+      <button
+        mat-stroked-button
+        type="button"
+        class="minute-picker__chip"
+        [class.minute-picker__chip--selected]="value === minute()"
+        [attr.aria-pressed]="value === minute()"
+        [disabled]="disabled()"
+        [attr.data-testid]="'minute-quick-' + value"
+        (click)="on_quick_value(value)"
+      >
+        @if (value === minute()) {
+          <mat-icon aria-hidden="true">check</mat-icon>
+        }
+        {{ value }}
+      </button>
+    }
+  </div>
+</div>

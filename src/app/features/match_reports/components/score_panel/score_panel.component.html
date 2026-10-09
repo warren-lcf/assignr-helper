@@ -1,0 +1,53 @@
+<mat-card appearance="outlined" class="score-panel" data-testid="match-report-score-panel">
+  <hch-card-header
+    icon="sports_soccer"
+    [title]="t('Final score')"
+    [heading_level]="2"
+  ></hch-card-header>
+
+  <mat-card-content>
+    <div class="score-panel__tiles">
+      <div class="score-panel__team" data-testid="score-home">
+        <hch-score-stepper
+          [label]="home_label()"
+          [value]="home_value()"
+          [min]="min"
+          [max]="max"
+          [disabled]="disabled()"
+          [range_text]="range_text()"
+          [decrease_label]="t('Remove a goal for {{team}}', { team: home_name() })"
+          [increase_label]="t('Add a goal for {{team}}', { team: home_name() })"
+          (valueChange)="on_home_changed($event)"
+        ></hch-score-stepper>
+      </div>
+      <div class="score-panel__team" data-testid="score-away">
+        <hch-score-stepper
+          [label]="away_label()"
+          [value]="away_value()"
+          [min]="min"
+          [max]="max"
+          [disabled]="disabled()"
+          [range_text]="range_text()"
+          [decrease_label]="t('Remove a goal for {{team}}', { team: away_name() })"
+          [increase_label]="t('Add a goal for {{team}}', { team: away_name() })"
+          (valueChange)="on_away_changed($event)"
+        ></hch-score-stepper>
+      </div>
+    </div>
+
+    @if (is_unset() && !disabled()) {
+      <p class="score-panel__unset" data-testid="score-unset-note">
+        {{ t('No score entered yet.') }}
+      </p>
+      <button
+        mat-stroked-button
+        type="button"
+        class="score-panel__goalless"
+        data-testid="score-confirm-goalless"
+        (click)="on_confirm_goalless()"
+      >
+        {{ t('Final score is 0 – 0') }}
+      </button>
+    }
+  </mat-card-content>
+</mat-card>

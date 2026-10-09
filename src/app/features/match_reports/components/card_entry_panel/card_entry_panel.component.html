@@ -1,0 +1,126 @@
+<mat-card appearance="outlined" class="card-entry" data-testid="match-report-card-panel">
+  <hch-card-header icon="style" [title]="t('Add a card')" [heading_level]="2"></hch-card-header>
+
+  <mat-card-content class="card-entry__content">
+    <div data-testid="card-team">
+      <hch-choice-tile-group
+        [label]="t('Which team?')"
+        [options]="team_options()"
+        [selected]="draft().team_side"
+        [selection_mode]="selection_mode"
+        [columns]="two_columns"
+        [disabled]="disabled()"
+        (selectedChange)="on_team_selected($event)"
+      ></hch-choice-tile-group>
+    </div>
+
+    <div data-testid="card-type">
+      <hch-choice-tile-group
+        [label]="t('Which card?')"
+        [options]="card_options()"
+        [selected]="draft().incident_type"
+        [selection_mode]="selection_mode"
+        [columns]="three_columns"
+        [disabled]="disabled()"
+        (selectedChange)="on_card_selected($event)"
+      ></hch-choice-tile-group>
+    </div>
+
+    <section class="card-entry__section" data-testid="card-number">
+      <h3 class="card-entry__heading">{{ t('Player number') }}</h3>
+      <hch-big-numpad
+        [value]="draft().jersey_digits"
+        [max_digits]="jersey_max_digits"
+        [with_submit]="false"
+        [disabled]="disabled()"
+        [submit_label]="t('Confirm')"
+        [backspace_label]="t('Delete')"
+        [group_label]="t('Player number keypad')"
+        [hint]="t('Up to 2 digits')"
+        [hold_hint]="t('Keep holding to clear every digit')"
+        (valueChange)="on_digits_changed($event)"
+      ></hch-big-numpad>
+      <div class="card-entry__number-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="card-entry__small-button"
+          [class.card-entry__small-button--selected]="draft().no_number"
+          [attr.aria-pressed]="draft().no_number"
+          [disabled]="disabled()"
+          data-testid="card-no-number"
+          (click)="on_no_number()"
+        >
+          @if (draft().no_number) {
+            <mat-icon aria-hidden="true">check</mat-icon>
+          }
+          {{ t('No number') }}
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="card-entry__small-button"
+          [disabled]="disabled()"
+          data-testid="card-clear-number"
+          (click)="on_clear_number()"
+        >
+          {{ t('Clear') }}
+        </button>
+      </div>
+    </section>
+
+    <section class="card-entry__section">
+      <h3 class="card-entry__heading">{{ t('Minute') }}</h3>
+      <app-minute-picker
+        [minute]="minute()"
+        [disabled]="disabled()"
+        (minute_changed)="on_minute_changed($event)"
+      ></app-minute-picker>
+    </section>
+
+    <section class="card-entry__section" data-testid="card-reason">
+      <h3 class="card-entry__heading">{{ t('Reason (optional)') }}</h3>
+      <div class="card-entry__reasons" role="group" [attr.aria-label]="t('Reason (optional)')">
+        @for (reason of reason_choices; track reason) {
+          <button
+            mat-stroked-button
+            type="button"
+            class="card-entry__small-button"
+            [class.card-entry__small-button--selected]="draft().reason_code === reason"
+            [attr.aria-pressed]="draft().reason_code === reason"
+            [disabled]="disabled()"
+            [attr.data-testid]="'card-reason-' + reason"
+            (click)="on_reason_toggled(reason)"
+          >
+            @if (draft().reason_code === reason) {
+              <mat-icon aria-hidden="true">check</mat-icon>
+            }
+            {{ reason_label(reason) }}
+          </button>
+        }
+      </div>
+    </section>
+  </mat-card-content>
+
+  <mat-card-actions class="card-entry__actions">
+    <button
+      mat-flat-button
+      type="button"
+      class="card-entry__add"
+      [disabled]="!can_add()"
+      aria-describedby="card-entry-add-hint"
+      data-testid="card-add"
+      (click)="on_add()"
+    >
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ t('Add card') }}
+    </button>
+    <p id="card-entry-add-hint" class="card-entry__hint" data-testid="card-add-hint">
+      @if (is_full()) {
+        {{ t('This report already holds the most cards it can.') }}
+      } @else if (!can_add()) {
+        {{ t('Choose a team and a card to add it.') }}
+      }
+    </p>
+  </mat-card-actions>
+</mat-card>

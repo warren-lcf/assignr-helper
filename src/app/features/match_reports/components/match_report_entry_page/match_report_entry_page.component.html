@@ -1,0 +1,124 @@
+<hch-page-container [title]="t('Match report')" icon="assignment" [subtitle]="game_title()">
+  @if (is_loading()) {
+    <div
+      class="entry-page__loading"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading the match report')"
+      data-testid="match-report-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-line height="120px"></hch-skeleton-line>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('The match report could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="match-report-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to match reports')"
+      [description]="t('Ask a tenant owner to give your role access to match reports.')"
+      data-testid="match-report-no-access"
+    ></hch-empty-state>
+  } @else if (load_error(); as error) {
+    <hch-empty-state
+      icon="error"
+      [headline]="error.headline"
+      [description]="error.description"
+      [action_label]="can_retry() ? t('Try again') : t('Back to match reports')"
+      [action_testid]="can_retry() ? 'match-report-retry' : 'match-report-back'"
+      (action_clicked)="can_retry() ? retry() : go_to_list()"
+    ></hch-empty-state>
+  } @else if (report(); as current) {
+    <div class="entry-page" data-testid="match-report-entry">
+      <button
+        mat-stroked-button
+        type="button"
+        class="entry-page__back"
+        data-testid="match-report-back"
+        (click)="go_to_list()"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        {{ t('All match reports') }}
+      </button>
+
+      <mat-card appearance="outlined" class="entry-page__header" data-testid="match-report-header">
+        <mat-card-content class="entry-page__header-content">
+          <div class="entry-page__teams">
+            <p class="entry-page__team">
+              <span class="entry-page__side">{{ t('Home') }}</span>
+              <span data-testid="match-report-home-name">{{ home_name() }}</span>
+            </p>
+            <p class="entry-page__team">
+              <span class="entry-page__side">{{ t('Away') }}</span>
+              <span data-testid="match-report-away-name">{{ away_name() }}</span>
+            </p>
+          </div>
+          @if (game(); as game) {
+            <p class="entry-page__meta" data-testid="match-report-kickoff">
+              <mat-icon aria-hidden="true">schedule</mat-icon>
+              <span class="entry-page__visually-hidden">{{ t('Kick-off') }}:</span>
+              <span>{{ game.start_at | hchUserDate: time_format : game.time_zone }}</span>
+            </p>
+            @if (game.venue_name; as venue_name) {
+              <p class="entry-page__meta">
+                <mat-icon aria-hidden="true">place</mat-icon>
+                <span class="entry-page__visually-hidden">{{ t('Venue') }}:</span>
+                <span>{{ venue_name }}</span>
+              </p>
+            }
+          }
+          <app-save-status
+            [state]="save_state()"
+            [waiting_count]="pending_count()"
+          ></app-save-status>
+        </mat-card-content>
+      </mat-card>
+
+      <app-score-panel
+        [home_name]="home_name()"
+        [away_name]="away_name()"
+        [home_score]="current.home_score"
+        [away_score]="current.away_score"
+        [disabled]="!is_editable()"
+        (scores_changed)="on_scores_changed($event)"
+      ></app-score-panel>
+
+      @if (is_editable()) {
+        <app-card-entry-panel
+          [home_name]="home_name()"
+          [away_name]="away_name()"
+          [kickoff_at]="kickoff_at()"
+          [is_full]="is_full()"
+          (card_added)="on_card_added($event)"
+        ></app-card-entry-panel>
+      }
+
+      <app-recorded-cards
+        [incidents]="current.incidents"
+        [home_name]="home_name()"
+        [away_name]="away_name()"
+        [disabled]="!is_editable()"
+        (remove_requested)="on_remove_requested($event)"
+      ></app-recorded-cards>
+
+      <app-finish-panel
+        [report]="current"
+        [home_name]="home_name()"
+        [away_name]="away_name()"
+        [pending_count]="pending_count()"
+        [is_busy]="is_busy()"
+        [blockers]="blockers()"
+        (mark_ready_requested)="on_mark_ready()"
+        (reopen_requested)="on_reopen()"
+      ></app-finish-panel>
+    </div>
+  }
+</hch-page-container>

@@ -1,0 +1,30 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.minute-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.minute-picker__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.minute-picker__chip {
+  min-width: 56px;
+  min-height: 56px;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+
+  &--selected {
+    border-width: 3px;
+    border-color: var(--mat-sys-primary);
+    background-color: var(--mat-sys-secondary-container);
+  }
+}

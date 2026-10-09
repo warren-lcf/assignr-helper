@@ -8,6 +8,8 @@ import { ConnectionsPageComponent } from './features/connections/components/conn
 import { QuickLinksPageComponent } from './features/quick_links/components/quick_links_page/quick_links_page.component';
 import { PublicQuickLinkPageComponent } from './features/public_quick_link/components/public_quick_link_page/public_quick_link_page.component';
 import { EmailDraftsPageComponent } from './features/email_drafts/components/email_drafts_page/email_drafts_page.component';
+import { MatchReportsPageComponent } from './features/match_reports/components/match_reports_page/match_reports_page.component';
+import { MatchReportEntryPageComponent } from './features/match_reports/components/match_report_entry_page/match_report_entry_page.component';
 import { PublicUnsubscribePageComponent } from './features/public_unsubscribe/components/public_unsubscribe_page/public_unsubscribe_page.component';
 import { AppTranslationService } from './core/services/translation/app_translation.service';
 import { routes } from './app.routes';
@@ -79,6 +81,49 @@ describe('routes', () => {
     expect(await (email_drafts?.loadComponent as () => Promise<unknown>)()).toBe(
       EmailDraftsPageComponent,
     );
+  });
+
+  it('lazy loads the Match reports list in place of its placeholder, behind the guard', async () => {
+    const match_reports = routes.find((route) => route.path === 'match-reports');
+
+    expect(match_reports?.canActivate).toEqual([auth_guard]);
+    expect(await (match_reports?.loadComponent as () => Promise<unknown>)()).toBe(
+      MatchReportsPageComponent,
+    );
+  });
+
+  describe('the match report entry route', () => {
+    const find_entry = (): Route | undefined =>
+      routes.find((route) => route.path === 'match-reports/:game_id');
+
+    it('exists behind the guard', () => {
+      expect(find_entry()).toBeDefined();
+      expect(find_entry()?.canActivate).toEqual([auth_guard]);
+    });
+
+    it('lazy loads the entry screen', async () => {
+      expect(await (find_entry()?.loadComponent as () => Promise<unknown>)()).toBe(
+        MatchReportEntryPageComponent,
+      );
+    });
+
+    it('shares the navigation entry’s title, icon and breadcrumb', () => {
+      const definition = NAV_DEFINITIONS.find((candidate) => candidate.path === 'match-reports');
+
+      expect(find_entry()?.data).toEqual({
+        title: definition?.label,
+        icon: definition?.icon,
+        breadcrumb: definition?.label,
+      });
+    });
+
+    it('sits before the catch-all so it is reachable', () => {
+      const entry_index = routes.findIndex((route) => route.path === 'match-reports/:game_id');
+      const catch_all_index = routes.findIndex((route) => route.path === '**');
+
+      expect(entry_index).toBeGreaterThanOrEqual(0);
+      expect(entry_index).toBeLessThan(catch_all_index);
+    });
   });
 
   describe('the public unsubscribe route', () => {

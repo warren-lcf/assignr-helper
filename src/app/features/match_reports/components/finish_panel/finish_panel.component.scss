@@ -1,0 +1,130 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.finish {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.finish__summary {
+  min-width: 0;
+}
+
+.finish__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.finish__heading {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+}
+
+// Scores and counts line up on the right edge so they compare at a glance.
+.finish__facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.finish__fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+
+  dt {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+}
+
+.finish__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+
+  p,
+  ul {
+    margin: 0;
+  }
+
+  ul {
+    padding-inline-start: 20px;
+  }
+
+  &--blocked {
+    background-color: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+}
+
+.finish__note-title {
+  font-weight: 500;
+}
+
+.finish__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.finish__waiting {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+// The page's primary actions: full width, 72 px high.
+.finish__primary {
+  min-height: 72px;
+  width: 100%;
+  font-size: 20px;
+}
+
+.finish__secondary {
+  min-height: 56px;
+}
+
+.finish__team {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.finish__team-name {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+  overflow-wrap: anywhere;
+}
+
+.finish__none {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -1,0 +1,36 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.score-panel {
+  min-width: 0;
+}
+
+// One stepper per row on a phone; side by side once the card is wide enough for both.
+.score-panel__tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.score-panel__team {
+  min-width: 0;
+}
+
+@media (min-width: 840px) {
+  .score-panel__tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.score-panel__unset {
+  margin: 16px 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.score-panel__goalless {
+  min-height: 56px;
+}

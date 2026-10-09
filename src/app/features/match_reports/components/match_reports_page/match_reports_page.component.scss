@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.reports-page__loading,
+.reports-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.reports-page__section {
+  margin-top: 16px;
+}
+
+// The one thing most referees came to do: a full-width target far bigger than the 72 px floor.
+.reports-page__giant {
+  width: 100%;
+  min-height: 88px;
+  padding-block: 12px;
+  font-size: 22px;
+}
+
+.reports-page__giant-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reports-page__giant-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reports-page__giant-game {
+  font-size: 16px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.reports-page__count {
+  margin: 16px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.reports-page__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+// A count next to its heading; right-aligned digits would not help here, tabular ones keep it steady.
+.reports-page__badge {
+  min-width: 28px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font: var(--mat-sys-label-large);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.reports-page__caught-up {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
