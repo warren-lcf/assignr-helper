@@ -8,7 +8,8 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 0;
+  // The agenda list frames the row and pads it; this component adds no space of its own.
+  padding: 0;
   min-width: 0;
 }
 

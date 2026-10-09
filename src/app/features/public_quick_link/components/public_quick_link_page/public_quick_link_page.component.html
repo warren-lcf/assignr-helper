@@ -100,13 +100,27 @@
         [attr.aria-busy]="is_refreshing()"
         data-testid="public-list"
       >
-        @for (location of result()?.locations; track location.location_label; let index = $index) {
-          <app-public-location-card
-            [location]="location"
-            [index]="index"
-          ></app-public-location-card>
-        }
+        <hch-grouped-agenda-list
+          [rows]="agenda_rows()"
+          [group_levels]="group_levels"
+          [row_template]="game_row"
+          [row_time_template]="game_time"
+          [get_row_key]="get_row_key"
+          [item_noun]="item_noun()"
+          [rows_interactive]="false"
+          [(collapsed_key_paths)]="collapsed_key_paths"
+        ></hch-grouped-agenda-list>
       </div>
     }
   }
 </hch-page-container>
+
+<!-- The list draws the time column; the row draws everything else. Read-only, so nothing here is pressable. -->
+<ng-template #game_time let-row>
+  <span [attr.data-testid]="'public-game-time-' + row.game.game_id">
+    {{ row.game.start_at | hchUserDate: time_format : row.game.time_zone }}
+  </span>
+</ng-template>
+<ng-template #game_row let-row>
+  <app-public-game-row [game]="row.game" [show_time]="false"></app-public-game-row>
+</ng-template>

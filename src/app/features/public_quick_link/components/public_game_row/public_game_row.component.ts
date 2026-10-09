@@ -14,7 +14,7 @@ import { format_open_spots } from '../../utils/format_open_spots';
 import { to_game_slot_views } from '../../utils/to_game_slot_views';
 
 /**
- * One game on the public page: kick-off time, the teams (or "Teams to be
+ * The content of one game on the public page: kick-off time (unless the list draws it), the teams (or "Teams to be
  * announced"), the venue, level and league tags, and how many referee spots
  * are open as an icon plus text, never colour alone. Fees and organization
  * names are not part of the data and never shown. Read-only.
@@ -32,6 +32,11 @@ export class PublicGameRowComponent {
 
   /** The game to show. */
   public readonly game = input.required<IPublicGame>();
+  /**
+   * False when the list the row sits in draws the kick-off time in a column of its own (the grouped
+   * agenda list does), so the row does not repeat it.
+   */
+  public readonly show_time = input(true);
 
   /** Kick-off is shown on the venue's own clock with its zone; without a known zone it is the visitor's. */
   public readonly time_format = UserDateFormat.TIME_ONLY_WITH_ZONE;

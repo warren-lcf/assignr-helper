@@ -123,4 +123,16 @@ describe('PublicGameRowComponent', () => {
 
     expect(by_testid('public-game-time-g1')?.textContent?.trim()).toMatch(/^4:00\s?AM HST$/);
   });
+
+  it('leaves the time out when the list around it draws the time column', () => {
+    const { fixture, by_testid, element } = render(make_public_game());
+    fixture.componentRef.setInput('show_time', false);
+    fixture.detectChanges();
+
+    expect(by_testid('public-game-time-g1')).toBeNull();
+    expect(element.querySelector('.game-row__time')).toBeNull();
+    // Everything else on the row is still there.
+    expect(by_testid('public-game-title-g1')?.textContent?.trim()).toBe('Lions vs Tigers');
+    expect(by_testid('public-game-spots-g1')).not.toBeNull();
+  });
 });

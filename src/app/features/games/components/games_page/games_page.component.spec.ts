@@ -2,14 +2,23 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { USER_DATE_TIMEZONE } from '@hch-shared-libraries/ui-kit/core';
+import { TRANSLATION_PROVIDER } from '@hch-shared-libraries/ui-kit/core/translation';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { SessionService } from '../../../../core/services/session/session.service';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { GamesScope } from '../../enums/games_scope.enum';
 import {
+  agenda_header_buttons,
+  read_agenda_groups,
+  read_agenda_labels,
+} from '../../mocks/agenda_list_dom.mock';
+import {
   EMPTY_GAMES_RESULT,
   GAMES_RESULT,
   RIVERSIDE_LOCATION,
+  SATURDAY_DATE,
+  make_date_group,
   make_game_view,
   make_games_result,
 } from '../../mocks/game_view.mock';
@@ -19,6 +28,7 @@ import {
   REFEREE_PERMISSIONS,
   make_session_service_double,
 } from '../../mocks/session_service.mock';
+import { make_translation_provider_double } from '../../mocks/translation_provider.mock';
 import { make_translation_service_double } from '../../mocks/translation_service.mock';
 import { IGamesQuery } from '../../models/games_query.model';
 import { IGamesResult } from '../../models/games_result.model';
@@ -30,6 +40,8 @@ interface IRenderOptions {
   permissions?: readonly (typeof REFEREE_PERMISSIONS)[number][];
   session?: ISessionDoubleOptions;
   list_games?: (query: IGamesQuery) => Observable<IGamesResult>;
+  /** The IANA zone the viewer is in; the browser's own when left out. */
+  viewer_zone?: string;
 }
 
 function render(options: IRenderOptions = {}) {
@@ -50,6 +62,10 @@ function render(options: IRenderOptions = {}) {
       { provide: SessionService, useValue: session },
       { provide: Router, useValue: router },
       { provide: AppTranslationService, useValue: make_translation_service_double() },
+      { provide: TRANSLATION_PROVIDER, useValue: make_translation_provider_double() },
+      ...(options.viewer_zone
+        ? [{ provide: USER_DATE_TIMEZONE, useValue: () => options.viewer_zone as string }]
+        : []),
     ],
   });
   const fixture = TestBed.createComponent(GamesPageComponent);
@@ -100,7 +116,7 @@ describe('GamesPageComponent', () => {
 
       expect(by_testid('games-loading')?.getAttribute('aria-busy')).toBe('true');
       expect(element.querySelectorAll('hch-skeleton-line').length).toBeGreaterThan(0);
-      expect(element.querySelector('app-game-location-card')).toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).toBeNull();
     });
 
     it('shows skeletons while the session loads, and asks for no games yet', async () => {
@@ -111,16 +127,17 @@ describe('GamesPageComponent', () => {
       expect(api.list_games).not.toHaveBeenCalled();
     });
 
-    it('lists a card per location, in the order the backend gave, under the page title', async () => {
+    it('lists a group per location, in the order the backend gave, under the page title', async () => {
       const { element, settle } = render();
       await settle();
 
       expect(element.querySelector('hch-page-container')).not.toBeNull();
       expect(element.textContent).toContain('Games');
-      const cards = element.querySelectorAll('app-game-location-card');
-      expect(cards).toHaveLength(2);
-      expect(cards[0].textContent).toContain('Riverside Park');
-      expect(cards[1].textContent).toContain('Location to be announced');
+      expect(element.querySelectorAll('hch-grouped-agenda-list')).toHaveLength(1);
+      expect(read_agenda_labels(element, 0)).toEqual([
+        'Riverside Park',
+        'Location to be announced',
+      ]);
     });
 
     it('asks for open games with default filters', async () => {
@@ -163,8 +180,15 @@ describe('GamesPageComponent', () => {
       const { element, by_testid, settle } = render();
       await settle();
 
-      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
-      expect(element.querySelector('app-games-by-date-card')).toBeNull();
+      expect(read_agenda_labels(element, 0)).toEqual([
+        'Riverside Park',
+        'Location to be announced',
+      ]);
+      expect(read_agenda_labels(element, 1)).toEqual([
+        'Saturday, Oct 10',
+        'Sunday, Oct 11',
+        'Date to be announced',
+      ]);
       expect(by_testid('games-toggle-group-by-venue')?.textContent).toContain('Group by venue');
       expect(
         by_testid('games-toggle-group-by-venue')
@@ -181,8 +205,12 @@ describe('GamesPageComponent', () => {
       fixture.detectChanges();
       await settle();
 
-      expect(element.querySelector('app-game-location-card')).toBeNull();
-      expect(element.querySelectorAll('app-games-by-date-card')).toHaveLength(1);
+      expect(read_agenda_labels(element, 0)).toEqual([
+        'Saturday, Oct 10',
+        'Sunday, Oct 11',
+        'Date to be announced',
+      ]);
+      expect(read_agenda_labels(element, 1)).toEqual([]);
       const rows = Array.from(element.querySelectorAll('[data-testid^="game-row-"]')).map((row) =>
         row.getAttribute('data-testid'),
       );
@@ -205,8 +233,11 @@ describe('GamesPageComponent', () => {
       fixture.detectChanges();
       await settle();
 
-      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
-      expect(element.querySelector('app-games-by-date-card')).toBeNull();
+      expect(read_agenda_labels(element, 0)).toEqual([
+        'Riverside Park',
+        'Location to be announced',
+      ]);
+      expect(read_agenda_labels(element, 1)).toHaveLength(3);
     });
 
     it('remembers the choice for the next visit', async () => {
@@ -220,8 +251,235 @@ describe('GamesPageComponent', () => {
       const second = render();
       await second.settle();
 
-      expect(second.element.querySelector('app-games-by-date-card')).not.toBeNull();
-      expect(second.element.querySelector('app-game-location-card')).toBeNull();
+      expect(read_agenda_labels(second.element, 0)).toEqual([
+        'Saturday, Oct 10',
+        'Sunday, Oct 11',
+        'Date to be announced',
+      ]);
+      expect(read_agenda_labels(second.element, 1)).toEqual([]);
+    });
+  });
+
+  describe('the agenda list', () => {
+    it('is one list for all games, with a location level over a date level over the rows', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      expect(element.querySelectorAll('hch-grouped-agenda-list')).toHaveLength(1);
+      expect(read_agenda_groups(element).map((group) => [group.level, group.label])).toEqual([
+        [0, 'Riverside Park'],
+        [1, 'Saturday, Oct 10'],
+        [1, 'Sunday, Oct 11'],
+        [0, 'Location to be announced'],
+        [1, 'Date to be announced'],
+      ]);
+      const rows = Array.from(element.querySelectorAll('[data-testid^="game-row-"]')).map((row) =>
+        row.getAttribute('data-testid'),
+      );
+      expect(rows).toEqual([
+        'game-row-game-1',
+        'game-row-game-2',
+        'game-row-game-3',
+        'game-row-game-4',
+      ]);
+    });
+
+    it('counts the games in every group, in the singular for one', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      expect(read_agenda_groups(element).map((group) => group.count)).toEqual([
+        '3 games',
+        '2 games',
+        '1 game',
+        '1 game',
+        '1 game',
+      ]);
+    });
+
+    it('names the weekday of the calendar date even for a viewer west of UTC', async () => {
+      const { element, settle } = render({ viewer_zone: 'Pacific/Honolulu' });
+      await settle();
+
+      // A date stored as UTC midnight would read a day early (Friday) if it were formatted in the viewer zone.
+      expect(read_agenda_labels(element, 1).slice(0, 2)).toEqual([
+        'Saturday, Oct 10',
+        'Sunday, Oct 11',
+      ]);
+    });
+
+    it('keeps two dates a year apart as two groups when the venue grouping is off', async () => {
+      const next_year = Date.UTC(2027, 9, 10);
+      const { element, component, fixture, settle } = render({
+        list_games: () =>
+          of(
+            make_games_result({
+              locations: [
+                {
+                  location_label: 'Riverside Park',
+                  dates: [
+                    make_date_group(SATURDAY_DATE, [make_game_view({ game_id: 'this-year' })]),
+                    make_date_group(next_year, [
+                      make_game_view({
+                        game_id: 'next-year',
+                        local_date: next_year,
+                        start_at: next_year + 14 * 3_600_000,
+                      }),
+                    ]),
+                  ],
+                },
+              ],
+              total: 2,
+            }),
+          ),
+      });
+      await settle();
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+      await settle();
+
+      expect(read_agenda_groups(element).map((group) => group.key)).toEqual([
+        String(SATURDAY_DATE),
+        String(next_year),
+      ]);
+    });
+
+    it('merges the same date from several venues into one group, by start time, without grouping by venue', async () => {
+      const { element, component, fixture, settle } = render({
+        list_games: () =>
+          of(
+            make_games_result({
+              locations: [
+                {
+                  location_label: 'Lakeside Fields',
+                  dates: [
+                    make_date_group(SATURDAY_DATE, [
+                      make_game_view({
+                        game_id: 'early',
+                        location_group: 'Lakeside Fields',
+                        start_at: SATURDAY_DATE + 9 * 3_600_000,
+                      }),
+                    ]),
+                  ],
+                },
+                {
+                  location_label: 'Riverside Park',
+                  dates: [make_date_group(SATURDAY_DATE, [make_game_view({ game_id: 'late' })])],
+                },
+              ],
+              total: 2,
+            }),
+          ),
+      });
+      await settle();
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+      await settle();
+
+      expect(read_agenda_groups(element)).toEqual([
+        expect.objectContaining({ label: 'Saturday, Oct 10', count: '2 games', row_count: 2 }),
+      ]);
+      expect(
+        Array.from(element.querySelectorAll('[data-testid^="game-row-"]')).map((row) =>
+          row.getAttribute('data-testid'),
+        ),
+      ).toEqual(['game-row-early', 'game-row-late']);
+    });
+
+    it('names where each game is played only when the venue grouping is off', async () => {
+      const { element, by_testid, component, fixture, settle } = render();
+      await settle();
+      expect(element.querySelector('[data-testid^="game-location-"]')).toBeNull();
+
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+      await settle();
+
+      expect(by_testid('game-location-game-1')?.textContent).toContain('Riverside Park');
+      expect(by_testid('game-location-game-4')?.textContent).toContain('Location to be announced');
+    });
+
+    it('shows kick-off in the list time column on the venue clock, whatever zone the viewer is in', async () => {
+      const { element, by_testid, settle } = render({ viewer_zone: 'Pacific/Honolulu' });
+      await settle();
+
+      const time = by_testid('game-time-game-1');
+      expect(time?.textContent?.trim()).toMatch(/^9:00\s?AM CDT$/);
+      expect(time?.closest('.agenda_row_time')).not.toBeNull();
+      // The row itself does not repeat it.
+      expect(element.querySelectorAll('[data-testid="game-time-game-1"]')).toHaveLength(1);
+    });
+
+    it('falls back to the viewer clock, still naming the zone, when the venue zone is unknown', async () => {
+      const { by_testid, settle } = render({ viewer_zone: 'Pacific/Honolulu' });
+      await settle();
+
+      expect(by_testid('game-time-game-4')?.textContent?.trim()).toMatch(/^4:00\s?AM HST$/);
+    });
+
+    it('draws rows as plain read-only items, not buttons', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      const rows = element.querySelectorAll('[data-testid="grouped-agenda-row"]');
+      expect(rows).toHaveLength(4);
+      for (const row of Array.from(rows)) expect(row.tagName).not.toBe('BUTTON');
+      expect(element.querySelector('.agenda_row_chevron')).toBeNull();
+    });
+
+    it('collapses a group from its header and opens it again, keeping the count', async () => {
+      const { element, fixture, settle } = render();
+      await settle();
+      const riverside = () => read_agenda_groups(element)[0];
+      expect(riverside()).toEqual(expect.objectContaining({ expanded: true, count: '3 games' }));
+      expect(element.querySelector('[data-testid="game-row-game-1"]')).not.toBeNull();
+
+      agenda_header_buttons(element)[0].click();
+      fixture.detectChanges();
+
+      expect(riverside()).toEqual(expect.objectContaining({ expanded: false, count: '3 games' }));
+      expect(element.querySelector('[data-testid="game-row-game-1"]')).toBeNull();
+      expect(element.querySelector('[data-testid="game-row-game-3"]')).toBeNull();
+      expect(element.querySelector('[data-testid="game-row-game-4"]')).not.toBeNull();
+
+      agenda_header_buttons(element)[0].click();
+      fixture.detectChanges();
+
+      expect(riverside().expanded).toBe(true);
+      expect(element.querySelector('[data-testid="game-row-game-1"]')).not.toBeNull();
+    });
+
+    it('forgets what was collapsed when the venue grouping changes', async () => {
+      const { element, component, fixture, settle } = render();
+      await settle();
+      agenda_header_buttons(element)[0].click();
+      fixture.detectChanges();
+      expect(component.collapsed_key_paths()).toHaveLength(1);
+
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+
+      expect(component.collapsed_key_paths()).toEqual([]);
+    });
+
+    it('moves between group headers with the arrow keys, Home and End', async () => {
+      const { element, fixture, settle } = render();
+      await settle();
+      const headers = agenda_header_buttons(element);
+      const press = (from: HTMLElement, key: string) => {
+        from.focus();
+        from.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        fixture.detectChanges();
+      };
+
+      press(headers[0], 'ArrowDown');
+      expect(document.activeElement).toBe(headers[1]);
+      press(headers[1], 'End');
+      expect(document.activeElement).toBe(headers[headers.length - 1]);
+      press(headers[headers.length - 1], 'ArrowUp');
+      expect(document.activeElement).toBe(headers[headers.length - 2]);
+      press(headers[headers.length - 2], 'Home');
+      expect(document.activeElement).toBe(headers[0]);
     });
   });
 
@@ -360,7 +618,7 @@ describe('GamesPageComponent', () => {
       expect(list?.getAttribute('aria-busy')).toBe('true');
       expect(list?.classList).toContain('games-page__results--busy');
       expect(by_testid('games-loading')).toBeNull();
-      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
 
       next.next(EMPTY_GAMES_RESULT);
       next.complete();
@@ -410,7 +668,7 @@ describe('GamesPageComponent', () => {
       expect(component.filters().search).toBe('');
       expect(component.filters().scope).toBe(GamesScope.MINE);
       expect(queries()[queries().length - 1].scope).toBe('MINE');
-      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).not.toBeNull();
     });
 
     it.each([
@@ -444,7 +702,7 @@ describe('GamesPageComponent', () => {
       await settle();
 
       expect(element.textContent).toContain('Games could not be loaded');
-      expect(element.querySelector('app-game-location-card')).toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).toBeNull();
       expect(logged).toHaveBeenCalledWith('Could not load the games', expect.anything());
 
       fail = false;
@@ -452,7 +710,7 @@ describe('GamesPageComponent', () => {
       await settle();
 
       expect(api.list_games).toHaveBeenCalledTimes(2);
-      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
     });
 
     it('asks a platform administrator to choose a tenant', async () => {
@@ -480,7 +738,7 @@ describe('GamesPageComponent', () => {
       await settle();
 
       expect(component.filters().search).toBe('');
-      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).not.toBeNull();
     });
 
     it('offers no action for a refused role', async () => {
@@ -506,7 +764,7 @@ describe('GamesPageComponent', () => {
       await settle();
 
       expect(logged).toHaveBeenCalledWith('Could not load the filter options', expect.anything());
-      expect(element.querySelector('app-game-location-card')).not.toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).not.toBeNull();
     });
   });
 });
