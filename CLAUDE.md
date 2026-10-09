@@ -22,6 +22,8 @@ Referee app: open and assigned games across several assignors, a "games availabl
 | E2E (8-project matrix)            | `npm run e2e`. Set `PW_PORT_OFFSET` to a distinct value for concurrent runs. Run once, at the end, before any push.                                                                                                          |
 | Migrations                        | `npm --prefix functions run migrate` with `SPANNER_PROJECT_ID`, `SPANNER_INSTANCE_ID`, `SPANNER_DATABASE_ID`. Against real Spanner also `CONFIRM_PRODUCTION_MIGRATION=true`. Production migrates only via `cloudbuild.yaml`. |
 
+Deploy (manual, until the Cloud Build trigger exists): run pending migrations first, then `firebase deploy --only functions,hosting --project assignr-helper-prod`. Hosting has a `predeploy` that runs `npm run build`, so it never uploads a stale `dist/`.
+
 Always run tests through these scripts, never a bare `npx vitest` or `npx playwright test`.
 
 ## Deviations from the global standards (follow the libraries' reality)
