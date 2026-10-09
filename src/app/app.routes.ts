@@ -25,6 +25,10 @@ const feature_loaders: Readonly<Record<string, () => Promise<Type<unknown>>>> = 
     import('./features/email_drafts/components/email_drafts_page/email_drafts_page.component').then(
       (module) => module.EmailDraftsPageComponent,
     ),
+  'my-schedule': () =>
+    import('./features/my_schedule/components/my_schedule_page/my_schedule_page.component').then(
+      (module) => module.MySchedulePageComponent,
+    ),
   'quick-links': () =>
     import('./features/quick_links/components/quick_links_page/quick_links_page.component').then(
       (module) => module.QuickLinksPageComponent,

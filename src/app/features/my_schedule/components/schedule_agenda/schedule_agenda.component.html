@@ -1,0 +1,19 @@
+<hch-grouped-agenda-list
+  [rows]="games()"
+  [group_levels]="group_levels()"
+  [row_template]="game_row"
+  [row_time_template]="game_time"
+  [get_row_key]="get_game_key"
+  [item_noun]="item_noun()"
+  [rows_interactive]="false"
+></hch-grouped-agenda-list>
+
+<!-- The list draws the time column; the row draws everything else. Read-only, so nothing here is pressable. -->
+<ng-template #game_time let-game>
+  <span [attr.data-testid]="'game-time-' + game.game_id">
+    {{ game.start_at | hchUserDate: time_format : game.time_zone }}
+  </span>
+</ng-template>
+<ng-template #game_row let-game>
+  <app-game-row [game]="game" [show_time]="false" [show_location]="true"></app-game-row>
+</ng-template>

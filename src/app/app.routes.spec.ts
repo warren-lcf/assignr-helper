@@ -8,6 +8,7 @@ import { ConnectionsPageComponent } from './features/connections/components/conn
 import { QuickLinksPageComponent } from './features/quick_links/components/quick_links_page/quick_links_page.component';
 import { PublicQuickLinkPageComponent } from './features/public_quick_link/components/public_quick_link_page/public_quick_link_page.component';
 import { EmailDraftsPageComponent } from './features/email_drafts/components/email_drafts_page/email_drafts_page.component';
+import { MySchedulePageComponent } from './features/my_schedule/components/my_schedule_page/my_schedule_page.component';
 import { MatchReportsPageComponent } from './features/match_reports/components/match_reports_page/match_reports_page.component';
 import { MatchReportEntryPageComponent } from './features/match_reports/components/match_report_entry_page/match_report_entry_page.component';
 import { PublicUnsubscribePageComponent } from './features/public_unsubscribe/components/public_unsubscribe_page/public_unsubscribe_page.component';
@@ -43,11 +44,20 @@ describe('routes', () => {
 
   it('lazy loads the login page and the placeholders', async () => {
     const login = routes.find((route) => route.path === 'login');
-    const schedule = routes.find((route) => route.path === 'my-schedule');
+    const availability = routes.find((route) => route.path === 'availability');
 
     expect(await (login?.loadComponent as () => Promise<unknown>)()).toBeTruthy();
-    expect(await (schedule?.loadComponent as () => Promise<unknown>)()).toBe(
+    expect(await (availability?.loadComponent as () => Promise<unknown>)()).toBe(
       FeaturePlaceholderComponent,
+    );
+  });
+
+  it('lazy loads the My Schedule page in place of its placeholder, behind the guard', async () => {
+    const schedule = routes.find((route) => route.path === 'my-schedule');
+
+    expect(schedule?.canActivate).toEqual([auth_guard]);
+    expect(await (schedule?.loadComponent as () => Promise<unknown>)()).toBe(
+      MySchedulePageComponent,
     );
   });
 

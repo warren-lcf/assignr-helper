@@ -36,6 +36,7 @@ import { IGamesResult } from '../../models/games_result.model';
 import { GamesApiService } from '../../services/games_api.service';
 import { has_active_games_filters } from '../../utils/active_filter_chips';
 import { are_games_queries_equal } from '../../utils/are_games_queries_equal';
+import { build_agenda_date_level } from '../../utils/build_agenda_date_level';
 import {
   build_facet_source_query,
   build_games_query,
@@ -45,13 +46,11 @@ import { count_games } from '../../utils/count_games';
 import { derive_facet_options } from '../../utils/derive_facet_options';
 import { flatten_games_by_date } from '../../utils/flatten_games_by_date';
 import { flatten_games_in_order } from '../../utils/flatten_games_in_order';
-import { format_agenda_date_heading } from '../../utils/format_agenda_date_heading';
 import { format_count } from '../../utils/format_count';
 import { format_games_label } from '../../utils/format_games_label';
 import { read_group_by_venue, write_group_by_venue } from '../../utils/group_by_venue_storage';
 import { read_last_scope, write_last_scope } from '../../utils/last_scope_storage';
 import { format_location_label } from '../../utils/format_location_label';
-import { get_agenda_date_key } from '../../utils/get_agenda_date_key';
 import { map_games_api_error } from '../../utils/map_games_api_error';
 import { GameRowComponent } from '../game_row/game_row.component';
 import { GamesFiltersComponent } from '../games_filters/games_filters.component';
@@ -180,11 +179,7 @@ export class GamesPageComponent {
    * The labels read the translation signals, so a language switch re-labels the headers.
    */
   public readonly group_levels = computed<IAgendaGroupLevel<IGameView>[]>(() => {
-    const date_level: IAgendaGroupLevel<IGameView> = {
-      get_key: (game) => get_agenda_date_key(game.local_date),
-      get_label: (_key, game) =>
-        format_agenda_date_heading(game.local_date, (key) => this.t(key), this.user_date),
-    };
+    const date_level = build_agenda_date_level((key) => this.t(key), this.user_date);
     if (!this.group_by_venue()) return [date_level];
     return [
       {

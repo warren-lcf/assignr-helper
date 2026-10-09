@@ -1,0 +1,138 @@
+<section class="calendar-link" data-testid="calendar-link">
+  <p
+    class="visually-hidden"
+    role="status"
+    aria-live="polite"
+    data-testid="calendar-link-announcement"
+  >
+    {{ announcement() }}
+  </p>
+
+  @if (load_error(); as error) {
+    <mat-card appearance="outlined" class="calendar-link__card">
+      <hch-card-header
+        [title]="t('Calendar link')"
+        icon="calendar_month"
+        [heading_level]="2"
+      ></hch-card-header>
+      <mat-card-content>
+        <p class="calendar-link__notice" role="alert" data-testid="calendar-link-load-error">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          <span>{{ error.message }}</span>
+        </p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button
+          mat-stroked-button
+          type="button"
+          data-testid="calendar-link-retry"
+          (click)="retry()"
+        >
+          {{ t('Try again') }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  } @else {
+    <hch-share-link-manager
+      [links]="links()"
+      [can_manage]="can_manage()"
+      [is_loading]="is_loading()"
+      [is_working]="is_working()"
+      [revealed_link]="revealed_link()"
+      (create_requested)="on_create_requested()"
+      (rotate_requested)="on_rotate_requested()"
+      (revoke_requested)="on_revoke_requested()"
+      (reveal_dismissed)="on_reveal_dismissed()"
+    ></hch-share-link-manager>
+
+    @if (webcal_href(); as href) {
+      <div class="calendar-link__open" data-testid="calendar-link-open">
+        <a mat-stroked-button [href]="href" data-testid="calendar-link-open-button">
+          <mat-icon aria-hidden="true">event_available</mat-icon>
+          {{ t('Open in my calendar app') }}
+        </a>
+        <p class="calendar-link__hint">
+          {{
+            t(
+              'Opens your calendar app and asks to subscribe. This button goes away with the panel above, so use it now.'
+            )
+          }}
+        </p>
+      </div>
+    }
+
+    @if (action_error(); as error) {
+      <p class="calendar-link__notice" role="alert" data-testid="calendar-link-action-error">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ error.message }}</span>
+      </p>
+    }
+
+    @if (activity(); as activity) {
+      <dl class="calendar-link__facts" data-testid="calendar-link-status">
+        <div class="calendar-link__fact">
+          <dt>{{ t('Last fetched') }}</dt>
+          <dd data-testid="calendar-link-last-fetched">{{ activity.last_fetched }}</dd>
+        </div>
+        <div class="calendar-link__fact">
+          <dt>{{ t('Fetches') }}</dt>
+          <dd data-testid="calendar-link-fetch-count">{{ activity.fetch_count }}</dd>
+        </div>
+      </dl>
+    }
+
+    @if (!can_manage()) {
+      <p class="calendar-link__note" data-testid="calendar-link-readonly">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        <span>{{
+          t(
+            'Your role cannot create, replace or revoke the calendar link. Ask a tenant owner if you need one.'
+          )
+        }}</span>
+      </p>
+    } @else {
+      <mat-card
+        appearance="outlined"
+        class="calendar-link__card"
+        data-testid="calendar-link-how-to"
+      >
+        <hch-card-header
+          [title]="t('How to add it')"
+          icon="help"
+          [heading_level]="2"
+        ></hch-card-header>
+        <mat-card-content>
+          <p>{{ t('Copy the link when it is shown, then add it as a subscription:') }}</p>
+          <ul class="calendar-link__steps">
+            <li>
+              <strong>{{ t('Google Calendar') }}:</strong>
+              {{
+                t(
+                  'on a computer, next to Other calendars choose Add (+), then From URL, and paste the link.'
+                )
+              }}
+            </li>
+            <li>
+              <strong>{{ t('Apple Calendar') }}:</strong>
+              {{ t('choose File, then New Calendar Subscription, and paste the link.') }}
+            </li>
+            <li>
+              <strong>{{ t('Outlook') }}:</strong>
+              {{ t('choose Add calendar, then Subscribe from web, and paste the link.') }}
+            </li>
+          </ul>
+          <p>
+            {{
+              t(
+                'Calendar apps refresh a subscription on their own schedule, often every several hours and sometimes only once a day, and this app itself only syncs from Assignr every 4 hours. A change in Assignr can take a while to appear in your calendar.'
+              )
+            }}
+          </p>
+          <p>
+            {{ t('Keep the link private: anyone who has it can see your schedule.') }}
+          </p>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</section>

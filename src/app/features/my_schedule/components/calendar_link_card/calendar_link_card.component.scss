@@ -1,0 +1,108 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.calendar-link {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.calendar-link__card {
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+
+  p {
+    margin: 0 0 12px;
+  }
+}
+
+.calendar-link__steps {
+  margin: 0 0 12px;
+  padding-inline-start: 20px;
+
+  li {
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
+  }
+}
+
+.calendar-link__open {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+
+  a {
+    flex-shrink: 0;
+  }
+}
+
+.calendar-link__hint {
+  flex: 1 1 240px;
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.calendar-link__notice,
+.calendar-link__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.calendar-link__notice {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.calendar-link__note {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Dates and counts line up on the right edge so magnitudes compare at a glance.
+.calendar-link__facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.calendar-link__fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+
+  dt {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
