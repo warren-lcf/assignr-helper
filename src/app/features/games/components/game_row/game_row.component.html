@@ -12,6 +12,13 @@
       {{ title() }}
     </p>
 
+    @if (location_text(); as location_text) {
+      <p class="game-row__meta" [attr.data-testid]="'game-location-' + game().game_id">
+        <mat-icon aria-hidden="true">map</mat-icon>
+        <span class="visually-hidden">{{ t('Location') }}:</span>
+        <span>{{ location_text }}</span>
+      </p>
+    }
     @if (game().venue_name; as venue_name) {
       <p class="game-row__meta">
         <mat-icon aria-hidden="true">place</mat-icon>

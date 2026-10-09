@@ -47,9 +47,19 @@
         (action_clicked)="on_error_action()"
       ></hch-empty-state>
     } @else {
-      <p class="games-page__count" role="status" aria-live="polite" data-testid="games-count">
-        {{ count_text() }}
-      </p>
+      <div class="games-page__toolbar">
+        <p class="games-page__count" role="status" aria-live="polite" data-testid="games-count">
+          {{ count_text() }}
+        </p>
+        <mat-slide-toggle
+          class="games-page__group-toggle"
+          data-testid="games-toggle-group-by-venue"
+          [checked]="group_by_venue()"
+          (change)="on_group_by_venue_changed($event.checked)"
+        >
+          {{ t('Group by venue') }}
+        </mat-slide-toggle>
+      </div>
 
       @if (is_truncated()) {
         <div class="games-page__notice" role="note" data-testid="games-truncated">
@@ -89,12 +99,19 @@
           [attr.aria-busy]="is_refreshing()"
           data-testid="games-list"
         >
-          @for (
-            location of result()?.locations;
-            track location.location_label;
-            let index = $index
-          ) {
-            <app-game-location-card [location]="location" [index]="index"></app-game-location-card>
+          @if (group_by_venue()) {
+            @for (
+              location of result()?.locations;
+              track location.location_label;
+              let index = $index
+            ) {
+              <app-game-location-card
+                [location]="location"
+                [index]="index"
+              ></app-game-location-card>
+            }
+          } @else {
+            <app-games-by-date-card [dates]="flat_dates()"></app-games-by-date-card>
           }
         </div>
       }

@@ -146,6 +146,36 @@ describe('GameRowComponent', () => {
     expect(render(BARE_GAME).by_testid('game-positions-game-4')).toBeNull();
   });
 
+  it('does not name the location unless asked to', () => {
+    expect(render(OPEN_GAME).by_testid('game-location-game-1')).toBeNull();
+  });
+
+  it('names the location when the list has no location headings', () => {
+    const { fixture, by_testid } = render(OPEN_GAME);
+    fixture.componentRef.setInput('show_location', true);
+    fixture.detectChanges();
+
+    expect(by_testid('game-location-game-1')?.textContent).toContain('Riverside Park');
+  });
+
+  it('does not repeat the location when the venue line already says it', () => {
+    const { fixture, by_testid } = render(
+      make_game_view({ location_group: 'Field 3', venue_name: 'Field 3' }),
+    );
+    fixture.componentRef.setInput('show_location', true);
+    fixture.detectChanges();
+
+    expect(by_testid('game-location-game-1')).toBeNull();
+  });
+
+  it('translates the placeholder for an unknown location', () => {
+    const { fixture, by_testid } = render(BARE_GAME);
+    fixture.componentRef.setInput('show_location', true);
+    fixture.detectChanges();
+
+    expect(by_testid('game-location-game-4')?.textContent).toContain('Location to be announced');
+  });
+
   it('shows no position list when the server sent none', () => {
     expect(
       render(make_game_view({ slots: undefined })).by_testid('game-positions-game-1'),

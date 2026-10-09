@@ -1,0 +1,45 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.date-card {
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+// Stays in view while the games scroll past; it cannot leave the card it belongs to.
+.date-card__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 0;
+  padding-bottom: 12px;
+  background-color: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.date-card__date + .date-card__date {
+  margin-top: 8px;
+}
+
+.date-card__date-heading {
+  margin: 16px 0 4px;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-title-small);
+}
+
+.date-card__list {
+  padding: 0;
+}
+
+// The row lays itself out and may be as tall as its content.
+.date-card__item {
+  --mat-list-list-item-one-line-container-height: auto;
+  --mat-list-list-item-two-line-container-height: auto;
+  --mat-list-list-item-three-line-container-height: auto;
+  --mat-list-list-item-leading-space: 0;
+  --mat-list-list-item-trailing-space: 0;
+  height: auto;
+  min-height: 0;
+}
