@@ -22,12 +22,12 @@ export const assignr_helper_api = onRequest(
 );
 
 /**
- * Syncs every eligible connection every 15 minutes, least recently synced first.
+ * Syncs every eligible connection every 4 hours, least recently synced first.
  * A connection that has lost its credentials is flagged and skipped from then on.
  */
 export const sync_connections_job = onSchedule(
   {
-    schedule: 'every 15 minutes',
+    schedule: 'every 4 hours',
     region: 'us-east4',
     memory: '512MiB',
     timeoutSeconds: 540,
