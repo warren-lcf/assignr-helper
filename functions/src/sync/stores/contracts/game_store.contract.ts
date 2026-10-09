@@ -374,6 +374,54 @@ export function describe_game_store_contract(label: string, make: () => IGameSto
       });
     });
 
+    describe('get_game', () => {
+      it('reads one game of the tenant by id, with its slots and every field', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        const game = make_contract_game(tenant_id, 'g1', { is_mine: true, home_team: 'Home FC' });
+        await store.save_games([game, make_contract_game(tenant_id, 'g2')]);
+
+        expect(await store.get_game(tenant_id, 'g1')).toEqual(game);
+      });
+
+      it('still returns a removed game, so callers can tell it is gone', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([make_contract_game(tenant_id, 'g1', { removed_at: 4000 })]);
+
+        expect((await store.get_game(tenant_id, 'g1'))?.removed_at).toBe(4000);
+      });
+
+      it('returns null for an unknown id', async () => {
+        const store = make();
+
+        expect(await store.get_game(make_contract_tenant_id(), 'nope')).toBeNull();
+      });
+
+      it("never returns another tenant's game", async () => {
+        const store = make();
+        const owner = make_contract_tenant_id();
+        const other = make_contract_tenant_id();
+        await store.save_games([make_contract_game(owner, 'g1')]);
+
+        expect(await store.get_game(other, 'g1')).toBeNull();
+      });
+
+      it('returns a copy', async () => {
+        const store = make();
+        const tenant_id = make_contract_tenant_id();
+        await store.save_games([make_contract_game(tenant_id, 'g1')]);
+
+        const found = await store.get_game(tenant_id, 'g1');
+        found!.fingerprint = 'mutated';
+        found!.slots.length = 0;
+
+        const again = await store.get_game(tenant_id, 'g1');
+        expect(again?.fingerprint).toBe('fp');
+        expect(again?.slots).toHaveLength(1);
+      });
+    });
+
     describe('find_unseen', () => {
       it('selects open games for OPEN_GAMES and my games for MY_GAMES', async () => {
         const store = make();

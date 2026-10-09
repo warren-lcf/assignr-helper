@@ -28,6 +28,9 @@ import { SpannerEmailDraftStore } from './email_drafts/stores/spanner_email_draf
 import { EmailSettingsService } from './email_settings/email_settings.service.js';
 import { SecretManagerEmailSettingsVault } from './email_settings/secret_manager_email_settings_vault.js';
 import { GamesListService } from './games/games_list.service.js';
+import { MatchReportService } from './match_reports/match_report.service.js';
+import { IMatchReportStore } from './match_reports/ports/match_report_store.interface.js';
+import { SpannerMatchReportStore } from './match_reports/stores/spanner_match_report_store.js';
 import { ClientCredentialsTokenSource } from './connections/client_credentials_token_source.js';
 import { ConnectionAdminService } from './connections/connection_admin.service.js';
 import { SecretManagerCredentialVault } from './connections/secret_manager_credential_vault.js';
@@ -57,6 +60,8 @@ export interface IProductionContext {
   sync_runs: ISyncRunStore;
   sync_service: ConnectionSyncService;
   games_service: GamesListService;
+  match_reports: IMatchReportStore;
+  match_report_service: MatchReportService;
   admin_service: ConnectionAdminService;
   quick_links: IQuickLinkStore;
   quick_link_service: QuickLinkService;
@@ -98,6 +103,7 @@ export function create_production_context(
   const organizations = new SpannerOrganizationStore(database);
   const venues = new SpannerVenueStore(database);
   const quick_links = new SpannerQuickLinkStore(database);
+  const match_reports = new SpannerMatchReportStore(database);
   const contacts = new SpannerContactStore(database);
   const email_drafts = new SpannerEmailDraftStore(database);
   const email_deliveries = new SpannerEmailDeliveryStore(database);
@@ -115,6 +121,13 @@ export function create_production_context(
   });
 
   const games_service = new GamesListService({ games, venues, organizations, now: Date.now });
+  const match_report_service = new MatchReportService({
+    reports: match_reports,
+    games,
+    audit,
+    now: Date.now,
+    generate_id: randomUUID,
+  });
   const quick_link_service = new QuickLinkService({
     quick_links,
     audit,
@@ -163,6 +176,8 @@ export function create_production_context(
       generate_id: randomUUID,
     }),
     games_service,
+    match_reports,
+    match_report_service,
     admin_service: new ConnectionAdminService({
       connections,
       vault,

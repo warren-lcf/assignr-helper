@@ -87,6 +87,25 @@ describe('SpannerGameStore without a database round trip', () => {
   });
 });
 
+describe('SpannerGameStore.get_game without a database round trip', () => {
+  it('reads by the tenant and game id as bound parameters and returns null when there is no row', async () => {
+    const run = vi.fn(async (_request: unknown) => [[]]);
+    const end = vi.fn();
+    const database = { getSnapshot: async () => [{ run, end }] } as unknown as Database;
+
+    const found = await new SpannerGameStore(database).get_game('t1', 'g1');
+
+    expect(found).toBeNull();
+    const [request] = run.mock.calls.map(
+      ([sent]) => sent as { sql: string; params: object; types: object },
+    );
+    expect(request?.sql).toContain('WHERE tenant_id = @tenant_id AND game_id = @game_id');
+    expect(request?.sql).not.toContain("'g1'");
+    expect(request?.params).toEqual({ tenant_id: 't1', game_id: 'g1' });
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe.skipIf(!is_spanner_emulator_configured())(
   'SpannerGameStore (emulator)',
   { timeout: 60_000 },

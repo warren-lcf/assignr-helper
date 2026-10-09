@@ -74,6 +74,23 @@ export class SpannerGameStore implements IGameStore {
   }
 
   /**
+   * Reads one stored game of a tenant by its primary key.
+   * @param tenant_id Owning tenant.
+   * @param game_id Game id.
+   * @returns The game with slots ordered by slot id (removed games included), or null when this
+   *   tenant has none with that id.
+   */
+  public async get_game(tenant_id: string, game_id: string): Promise<IStoredGame | null> {
+    const [game] = await this.read_games_with_slots(
+      tenant_id,
+      `SELECT ${GAME_COLUMNS} FROM games WHERE tenant_id = @tenant_id AND game_id = @game_id`,
+      { tenant_id, game_id },
+      { tenant_id: 'string', game_id: 'string' },
+    );
+    return game ?? null;
+  }
+
+  /**
    * Inserts or replaces games by `game_id`. Each game's slots are replaced together with
    * the game row in one transaction, so a reader never sees a game with a mix of old and
    * new slots. When a call repeats a game id the last occurrence wins. Games are written in

@@ -35,6 +35,9 @@ import { InMemoryCredentialVault } from '../connections/in_memory_credential_vau
 import { IAccountVerifier } from '../connections/ports/account_verifier.interface.js';
 import { InMemoryConnectionStore } from '../connections/stores/in_memory_connection_store.js';
 import { create_games_router } from '../games/games.routes.js';
+import { MatchReportService } from '../match_reports/match_report.service.js';
+import { create_match_reports_router } from '../match_reports/match_reports.routes.js';
+import { InMemoryMatchReportStore } from '../match_reports/stores/in_memory_match_report_store.js';
 import { IRateLimiter } from '../http/rate_limit/rate_limiter.interface.js';
 import { TokenBucketRateLimiter } from '../http/rate_limit/token_bucket_rate_limiter.js';
 import { GamesListService } from '../games/games_list.service.js';
@@ -81,6 +84,9 @@ export interface IRoutesApp {
   verifier: { verify: IAccountVerifier['verify'] };
   audit: IInMemoryAuditLog;
   quick_links: InMemoryQuickLinkStore;
+  match_reports: InMemoryMatchReportStore;
+  /** The service behind the match report routes, for specs that build their own stores around it. */
+  match_report_service: MatchReportService;
   contacts: InMemoryContactStore;
   email_drafts: InMemoryEmailDraftStore;
   email_deliveries: InMemoryEmailDeliveryStore;
@@ -172,6 +178,15 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
     games: harness.games,
     venues: harness.venues,
     now: harness.clock,
+  });
+  const match_reports = new InMemoryMatchReportStore();
+  let match_report_ids = 0;
+  const match_report_service = new MatchReportService({
+    reports: match_reports,
+    games: harness.games,
+    audit: create_audit_log_service({ store: audit }),
+    now: harness.clock,
+    generate_id: () => `mr-${++match_report_ids}`,
   });
   const generous_limiter = (): IRateLimiter =>
     new TokenBucketRateLimiter({
@@ -337,6 +352,10 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
       target.use('/api', create_connections_router(connections, permission_service));
       target.use('/api', create_connections_admin_router({ admin_service, permission_service }));
       target.use('/api', create_games_router({ games_service, permission_service }));
+      target.use(
+        '/api',
+        create_match_reports_router({ report_service: match_report_service, permission_service }),
+      );
       target.use('/api', create_quick_links_router({ quick_link_service, permission_service }));
       target.use('/api', create_contacts_router({ contact_service, permission_service }));
       target.use(
@@ -375,6 +394,8 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
     verifier,
     audit,
     quick_links,
+    match_reports,
+    match_report_service,
     contacts,
     email_drafts,
     email_deliveries,
