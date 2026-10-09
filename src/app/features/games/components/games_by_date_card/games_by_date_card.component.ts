@@ -3,11 +3,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { CardHeaderComponent } from '@hch-shared-libraries/ui-kit/app';
-import { UserDateFormat, UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
+import { UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { IGameDateGroup } from '../../models/game_date_group.model';
 import { format_games_label } from '../../utils/format_games_label';
 import { GameRowComponent } from '../game_row/game_row.component';
+import { DATE_HEADING_FORMAT, DATE_HEADING_TIME_ZONE } from '../../constants/date_heading.constant';
 
 /**
  * All games in one card, by calendar date and then start time, with no grouping by venue. Each row
@@ -35,7 +36,8 @@ export class GamesByDateCardComponent {
   /** The dates and their games, already in order. */
   public readonly dates = input.required<IGameDateGroup[]>();
 
-  public readonly calendar_date_format = UserDateFormat.CALENDAR_DATE;
+  public readonly date_heading_format = DATE_HEADING_FORMAT;
+  public readonly date_heading_time_zone = DATE_HEADING_TIME_ZONE;
 
   public readonly games_label = computed(() =>
     format_games_label(

@@ -15,6 +15,8 @@ export interface IQuickLinkGameSource {
   is_open: boolean;
   start_at: number;
   local_date: number | null;
+  /** IANA zone the game is played in, or null when unknown. */
+  time_zone: string | null;
   venue_name: string | null;
   location_group: string | null;
   level: string | null;

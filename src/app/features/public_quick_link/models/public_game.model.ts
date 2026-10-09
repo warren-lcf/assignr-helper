@@ -11,6 +11,8 @@ export interface IPublicGame {
   start_at: number;
   /** The game's calendar date, UTC-midnight milliseconds; null when unknown. */
   local_date: number | null;
+  /** IANA zone the game is played in, or null when unknown. */
+  time_zone: string | null;
   /** The field or venue, when known. */
   venue_name: string | null;
   /** The location the game is grouped under, when known. */

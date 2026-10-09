@@ -33,6 +33,7 @@ const GAME_KEYS = [
   'open_slot_count',
   'slots',
   'start_at',
+  'time_zone',
   'venue_name',
 ];
 

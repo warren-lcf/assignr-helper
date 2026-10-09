@@ -3,13 +3,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { CardHeaderComponent } from '@hch-shared-libraries/ui-kit/app';
-import { UserDateFormat, UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
+import { UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { IGameLocationGroup } from '../../models/game_location_group.model';
 import { count_location_games } from '../../utils/count_games';
 import { format_location_label } from '../../utils/format_location_label';
 import { format_games_label } from '../../utils/format_games_label';
 import { GameRowComponent } from '../game_row/game_row.component';
+import { DATE_HEADING_FORMAT, DATE_HEADING_TIME_ZONE } from '../../constants/date_heading.constant';
 
 /**
  * One location of the agenda as a card: a header that stays in view while its
@@ -40,7 +41,8 @@ export class GameLocationCardComponent {
   /** Position among the page's locations; keeps heading ids and test ids unique. */
   public readonly index = input.required<number>();
 
-  public readonly calendar_date_format = UserDateFormat.CALENDAR_DATE;
+  public readonly date_heading_format = DATE_HEADING_FORMAT;
+  public readonly date_heading_time_zone = DATE_HEADING_TIME_ZONE;
 
   public readonly heading_id = computed(() => `games-location-heading-${this.index()}`);
   /** The label as shown: the backend's placeholder for an unknown location is translated. */

@@ -33,8 +33,8 @@ export class PublicGameRowComponent {
   /** The game to show. */
   public readonly game = input.required<IPublicGame>();
 
-  /** Kick-off is rendered in the visitor time zone (venue-local time is blocked on ui-kit issue #996). */
-  public readonly time_format = UserDateFormat.TIME_ONLY;
+  /** Kick-off is shown on the venue's own clock with its zone; without a known zone it is the visitor's. */
+  public readonly time_format = UserDateFormat.TIME_ONLY_WITH_ZONE;
   public readonly tone = StatusToneEnum;
 
   public readonly title = computed(() =>

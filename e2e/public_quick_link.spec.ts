@@ -21,6 +21,7 @@ interface IMockGame {
   game_id: string;
   start_at: number;
   local_date: number | null;
+  time_zone: string | null;
   venue_name: string | null;
   location_group: string;
   level: string | null;
@@ -38,6 +39,7 @@ function make_game(game_id: string, overrides: Partial<IMockGame>): IMockGame {
     game_id,
     start_at: SATURDAY + 14 * HOUR_MS,
     local_date: SATURDAY,
+    time_zone: 'America/Chicago',
     venue_name: 'Field 3',
     location_group: 'Riverside Park',
     level: 'Premier',
@@ -328,10 +330,11 @@ test.describe('public quick link page', () => {
 
     const riverside = page.getByTestId('public-location-1');
     await expect(riverside.getByRole('heading', { level: 3 })).toHaveText([
-      'Oct 10, 2026',
-      'Oct 11, 2026',
+      'Saturday, Oct 10',
+      'Sunday, Oct 11',
     ]);
-    await expect(page.getByTestId('public-game-time-g1')).toHaveText('2:00 PM');
+    // 14:00 UTC is 9:00 AM on the venue's Chicago clock, whatever zone the visitor is in.
+    await expect(page.getByTestId('public-game-time-g1')).toHaveText('9:00 AM CDT');
     await expect(page.getByTestId('public-game-title-g1')).toHaveText('Lions vs Tigers');
     await expect(page.getByTestId('public-game-spots-g1')).toContainText('1 open spot');
     await expect(page.getByTestId('public-game-spots-g2')).toContainText('3 open spots');

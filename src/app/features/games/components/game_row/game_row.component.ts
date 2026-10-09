@@ -40,10 +40,10 @@ export class GameRowComponent {
   public readonly show_location = input(false);
 
   /**
-   * Kick-off is rendered in the viewer's own time zone. The venue's local time is what a referee
-   * needs, but `hchUserDate` has no per-call time zone yet (upstream issue #996).
+   * Kick-off is shown on the venue's own clock with its zone ("10:00 AM CDT"); when the zone is not
+   * known the pipe falls back to the viewer's zone, and the abbreviation says which clock it is.
    */
-  public readonly time_format = UserDateFormat.TIME_ONLY;
+  public readonly time_format = UserDateFormat.TIME_ONLY_WITH_ZONE;
   public readonly tone = StatusToneEnum;
 
   /** The location to name on the row, or null when it is not wanted or the venue line already says it. */

@@ -16,6 +16,7 @@ export function make_game_view(overrides: Partial<IGameView> = {}): IGameView {
     venue_name: null,
     location_group: null,
     local_date: Date.UTC(2026, 9, 10),
+    time_zone: null,
     start_at: Date.UTC(2026, 9, 10, 14),
     end_at: null,
     status: GameStatus.SCHEDULED,

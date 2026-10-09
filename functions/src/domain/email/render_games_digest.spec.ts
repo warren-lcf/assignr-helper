@@ -57,6 +57,26 @@ function make_input(games: IGameListItem[], overrides: Partial<IDigestInput> = {
 }
 
 describe('render_games_digest', () => {
+  it('shows each game on its own venue clock, not the digest clock', () => {
+    const result = render_games_digest(
+      make_input(
+        [
+          make_game({ game_id: 'east', time_zone: 'America/New_York' }),
+          make_game({ game_id: 'west', time_zone: 'America/Los_Angeles' }),
+          make_game({ game_id: 'unknown', time_zone: 'Not/AZone' }),
+        ],
+        { generated_at: Date.UTC(2026, 5, 1, 12) },
+      ),
+      LABELS,
+    );
+
+    expect(result.html).toMatch(/7:00\s?PM EDT/);
+    expect(result.html).toMatch(/4:00\s?PM PDT/);
+    // The east game and the game with an unusable zone (falls back to the digest clock) both read EDT.
+    expect(result.html.match(/7:00\s?PM EDT/g)).toHaveLength(2);
+    expect(result.html.match(/4:00\s?PM PDT/g)).toHaveLength(1);
+  });
+
   it('names the open positions, merging repeats, and escapes their text', () => {
     const result = render_games_digest(
       make_input([

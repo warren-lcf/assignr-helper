@@ -6,6 +6,8 @@ export interface IPublicGame {
   game_id: string;
   start_at: number;
   local_date: number | null;
+  /** IANA zone the game is played in, or null when unknown; lets the page show the venue's clock. */
+  time_zone: string | null;
   venue_name: string | null;
   location_group: string | null;
   level: string | null;

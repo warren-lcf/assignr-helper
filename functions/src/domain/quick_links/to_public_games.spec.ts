@@ -26,6 +26,7 @@ const PUBLIC_KEYS = [
   'open_slot_count',
   'slots',
   'start_at',
+  'time_zone',
   'venue_name',
 ];
 
@@ -39,6 +40,7 @@ function make_game(overrides: Partial<IQuickLinkGameSource> = {}): IQuickLinkGam
     is_open: true,
     start_at: NOW + DAY,
     local_date: Date.UTC(2026, 5, 2),
+    time_zone: 'America/Chicago',
     venue_name: 'Field A',
     location_group: 'Complex',
     level: 'U12',
@@ -73,6 +75,7 @@ describe('to_public_games', () => {
       game_id: 'g1',
       start_at: NOW + DAY,
       local_date: Date.UTC(2026, 5, 2),
+      time_zone: 'America/Chicago',
       venue_name: 'Field A',
       location_group: 'Complex',
       level: 'U12',

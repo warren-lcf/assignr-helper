@@ -91,6 +91,7 @@ describe('to_game_view', () => {
       venue_name: 'Field 1',
       location_group: 'North Complex',
       local_date: 1786147200000,
+      time_zone: 'America/New_York',
       start_at: 1786234975000,
       end_at: 1786242175000,
       status: GameStatus.CANCELLED,
@@ -216,5 +217,17 @@ describe('to_game_view', () => {
     expect(to_game_view(game, null, null).slots).toEqual([
       { position: '', state: GameSlotState.OPEN },
     ]);
+  });
+
+  it('takes the time zone from the game, else its venue, and drops a name that is not a real zone', () => {
+    const own = make_contract_game('t1', 'g1', { game_time_zone: 'America/Los_Angeles' });
+    const none = make_contract_game('t1', 'g2', { game_time_zone: null });
+    const bad = make_contract_game('t1', 'g3', { game_time_zone: 'Central Time' });
+
+    expect(to_game_view(own, venue, null).time_zone).toBe('America/Los_Angeles');
+    expect(to_game_view(none, venue, null).time_zone).toBe('America/New_York');
+    expect(to_game_view(none, null, null).time_zone).toBeNull();
+    expect(to_game_view(bad, venue, null).time_zone).toBe('America/New_York');
+    expect(to_game_view(bad, { ...venue, time_zone: 'Nope/Zone' }, null).time_zone).toBeNull();
   });
 });

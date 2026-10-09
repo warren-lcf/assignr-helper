@@ -10,6 +10,7 @@ export function make_public_game(overrides: Partial<IPublicGame> = {}): IPublicG
     game_id: 'g1',
     start_at: Date.UTC(2026, 9, 10, 14),
     local_date: Date.UTC(2026, 9, 10),
+    time_zone: null,
     venue_name: null,
     location_group: null,
     level: null,

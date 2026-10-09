@@ -68,6 +68,7 @@ export function to_public_games(
       game_id: game.game_id,
       start_at: game.start_at,
       local_date: game.local_date,
+      time_zone: game.time_zone,
       venue_name: game.venue_name,
       location_group: game.location_group,
       level: game.level,

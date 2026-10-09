@@ -192,6 +192,7 @@ describe('GET /api/games', () => {
       venue_name: 'Field 1',
       location_group: null,
       local_date: Date.UTC(2026, 9, 10),
+      time_zone: null,
       start_at,
       end_at: start_at + HOUR,
       status: GameStatus.SCHEDULED,

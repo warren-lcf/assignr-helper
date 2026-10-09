@@ -1,14 +1,18 @@
 import { TestBed } from '@angular/core/testing';
+import { USER_DATE_TIMEZONE } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { make_public_game } from '../../mocks/public_games_result.mock';
 import { make_translation_service_double } from '../../mocks/translation_service.mock';
 import { IPublicGame } from '../../models/public_game.model';
 import { PublicGameRowComponent } from './public_game_row.component';
 
-function render(game: IPublicGame) {
+function render(game: IPublicGame, viewer_zone?: string) {
   TestBed.configureTestingModule({
     imports: [PublicGameRowComponent],
-    providers: [{ provide: AppTranslationService, useValue: make_translation_service_double() }],
+    providers: [
+      { provide: AppTranslationService, useValue: make_translation_service_double() },
+      ...(viewer_zone ? [{ provide: USER_DATE_TIMEZONE, useValue: () => viewer_zone }] : []),
+    ],
   });
   const fixture = TestBed.createComponent(PublicGameRowComponent);
   fixture.componentRef.setInput('game', game);
@@ -106,5 +110,17 @@ describe('PublicGameRowComponent', () => {
 
     expect(by_testid('public-game-positions-g1')).toBeNull();
     expect(by_testid('public-game-spots-g1')).not.toBeNull();
+  });
+
+  it('shows kick-off on the venue clock with its zone, whatever zone the visitor is in', () => {
+    const { by_testid } = render(make_public_game(), 'Pacific/Honolulu');
+
+    expect(by_testid('public-game-time-g1')?.textContent?.trim()).toMatch(/^9:00\s?AM CDT$/);
+  });
+
+  it('falls back to the visitor clock, still naming the zone, when the venue zone is unknown', () => {
+    const { by_testid } = render(make_public_game({ time_zone: null }), 'Pacific/Honolulu');
+
+    expect(by_testid('public-game-time-g1')?.textContent?.trim()).toMatch(/^4:00\s?AM HST$/);
   });
 });

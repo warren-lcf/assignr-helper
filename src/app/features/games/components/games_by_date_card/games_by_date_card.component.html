@@ -17,7 +17,7 @@
       >
         <h3 class="date-card__date-heading" [id]="date_heading_id(date_index)">
           @if (date.local_date !== null) {
-            {{ date.local_date | hchUserDate: calendar_date_format }}
+            {{ date.local_date | hchUserDate: date_heading_format : date_heading_time_zone }}
           } @else {
             {{ t('Date to be announced') }}
           }

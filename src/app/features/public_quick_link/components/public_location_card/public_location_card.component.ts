@@ -3,12 +3,16 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { CardHeaderComponent } from '@hch-shared-libraries/ui-kit/app';
-import { UserDateFormat, UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
+import { UserDatePipe } from '@hch-shared-libraries/ui-kit/core';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { format_games_label } from '../../../games/utils/format_games_label';
 import { IPublicLocationGroup } from '../../models/public_location_group.model';
 import { format_public_location_label } from '../../utils/format_public_location_label';
 import { PublicGameRowComponent } from '../public_game_row/public_game_row.component';
+import {
+  DATE_HEADING_FORMAT,
+  DATE_HEADING_TIME_ZONE,
+} from '../../../games/constants/date_heading.constant';
 
 /**
  * One location of the public agenda as a card: a header, then a heading per
@@ -37,7 +41,8 @@ export class PublicLocationCardComponent {
   /** Position among the page locations; keeps heading ids and test ids unique. */
   public readonly index = input.required<number>();
 
-  public readonly calendar_date_format = UserDateFormat.CALENDAR_DATE;
+  public readonly date_heading_format = DATE_HEADING_FORMAT;
+  public readonly date_heading_time_zone = DATE_HEADING_TIME_ZONE;
 
   public readonly heading_id = computed(() => `public-location-heading-${this.index()}`);
   public readonly label = computed(() =>

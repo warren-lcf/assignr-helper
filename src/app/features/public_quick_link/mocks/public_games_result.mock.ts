@@ -24,6 +24,7 @@ export function make_public_game(overrides: Partial<IPublicGame> = {}): IPublicG
     game_id: 'g1',
     start_at: SATURDAY + 14 * HOUR_MS,
     local_date: SATURDAY,
+    time_zone: 'America/Chicago',
     venue_name: 'Field 3',
     location_group: 'Riverside Park',
     level: 'Premier',
