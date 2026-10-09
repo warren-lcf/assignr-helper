@@ -10,6 +10,7 @@ import {
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Router } from '@angular/router';
 import { PageContainerComponent } from '@hch-shared-libraries/ui-kit/app';
 import { EmptyStateComponent, SkeletonLineComponent } from '@hch-shared-libraries/ui-kit/core';
@@ -32,11 +33,14 @@ import {
 } from '../../utils/build_games_query';
 import { count_games } from '../../utils/count_games';
 import { derive_facet_options } from '../../utils/derive_facet_options';
+import { flatten_games_by_date } from '../../utils/flatten_games_by_date';
 import { format_count } from '../../utils/format_count';
 import { format_games_label } from '../../utils/format_games_label';
+import { read_group_by_venue, write_group_by_venue } from '../../utils/group_by_venue_storage';
 import { read_last_scope, write_last_scope } from '../../utils/last_scope_storage';
 import { map_games_api_error } from '../../utils/map_games_api_error';
 import { GameLocationCardComponent } from '../game_location_card/game_location_card.component';
+import { GamesByDateCardComponent } from '../games_by_date_card/games_by_date_card.component';
 import { GamesFiltersComponent } from '../games_filters/games_filters.component';
 
 /** How many location cards of skeleton lines stand in while the first load runs. */
@@ -62,11 +66,13 @@ const CONNECTIONS_URL = '/connections';
   imports: [
     MatCardModule,
     MatIconModule,
+    MatSlideToggleModule,
     PageContainerComponent,
     EmptyStateComponent,
     SkeletonLineComponent,
     GamesFiltersComponent,
     GameLocationCardComponent,
+    GamesByDateCardComponent,
   ],
   templateUrl: './games_page.component.html',
   styleUrl: './games_page.component.scss',
@@ -137,6 +143,15 @@ export class GamesPageComponent {
   );
 
   public readonly shown_count = computed(() => count_games(this.result()));
+  /**
+   * True to group games by venue (the default); false for one list by date and time. It only changes
+   * how the loaded games are laid out, so nothing is requested again, and it is remembered per browser.
+   */
+  public readonly group_by_venue = signal(read_group_by_venue());
+  /** The games with no venue grouping: by date, then start time. Only worked out while that view is on. */
+  public readonly flat_dates = computed(() =>
+    this.group_by_venue() ? [] : flatten_games_by_date(this.result()?.locations ?? []),
+  );
   /** "12 games"; this element is the page's live region for result counts. */
   public readonly count_text = computed(() =>
     format_games_label(this.shown_count(), (key, params) => this.t(key, params)),
@@ -208,6 +223,7 @@ export class GamesPageComponent {
       if (error) console.error('Could not load the filter options', error);
     });
     effect(() => write_last_scope(this.filters().scope));
+    effect(() => write_group_by_venue(this.group_by_venue()));
   }
 
   /**
@@ -218,6 +234,15 @@ export class GamesPageComponent {
    */
   public t(key: string, params?: Record<string, string | number>): string {
     return this.translation.translate(key, params);
+  }
+
+  /**
+   * Switches between games grouped by venue and one list by date and time.
+   * @param group_by_venue True to group by venue.
+   * @returns Nothing.
+   */
+  public on_group_by_venue_changed(group_by_venue: boolean): void {
+    this.group_by_venue.set(group_by_venue);
   }
 
   /**

@@ -426,6 +426,45 @@ test.describe('games page', () => {
     await assert_settled_layout_is_sound(page);
   });
 
+  test('turns off the venue grouping to list every game by date and time, and remembers it', async ({
+    page,
+  }) => {
+    const api = await install_api_mock(page);
+    await open_games(page);
+    await expect(page.getByTestId('games-count')).toHaveText('3 games');
+    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(3);
+    const switch_control = page.getByTestId('games-toggle-group-by-venue').getByRole('switch');
+    await expect(switch_control).toBeChecked();
+
+    await switch_control.click();
+
+    // One list, no venue headings; the Lakeside 9 AM game now comes before the Riverside 2 PM game.
+    await expect(page.getByTestId('games-by-date')).toBeVisible();
+    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(0);
+    await expect(page.getByTestId('games-count')).toHaveText('3 games');
+    await expect(page.locator('[data-testid^="game-row-"]')).toHaveText([
+      /Wolves vs Bears/,
+      /Lions vs Tigers/,
+      /Teams to be announced/,
+    ]);
+    // With no heading saying where, each row names its location.
+    await expect(page.getByTestId('game-location-g4')).toContainText('Lakeside Fields');
+    await expect(page.getByTestId('game-location-g1')).toContainText('Riverside Park');
+    // It only rearranges what is loaded: no new request.
+    expect(api.game_requests).toHaveLength(1);
+    await assert_settled_layout_is_sound(page);
+
+    // The choice is remembered across a reload.
+    await page.reload();
+    await expect(page.getByTestId('games-by-date')).toBeVisible();
+    await expect(switch_control).not.toBeChecked();
+
+    // Turning it back on restores the venue cards.
+    await switch_control.click();
+    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(3);
+    await expect(page.getByTestId('games-by-date')).toHaveCount(0);
+  });
+
   test('switches scope between open, my and all games', async ({ page }) => {
     const api = await install_api_mock(page);
     await open_games(page);

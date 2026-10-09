@@ -158,6 +158,73 @@ describe('GamesPageComponent', () => {
     });
   });
 
+  describe('grouping by venue', () => {
+    it('groups by venue by default, with the switch on', async () => {
+      const { element, by_testid, settle } = render();
+      await settle();
+
+      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+      expect(element.querySelector('app-games-by-date-card')).toBeNull();
+      expect(by_testid('games-toggle-group-by-venue')?.textContent).toContain('Group by venue');
+      expect(
+        by_testid('games-toggle-group-by-venue')
+          ?.querySelector('button[role="switch"]')
+          ?.getAttribute('aria-checked'),
+      ).toBe('true');
+    });
+
+    it('turning the switch off lists the games by date and time, without asking again', async () => {
+      const { element, component, api, fixture, settle } = render();
+      await settle();
+
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+      await settle();
+
+      expect(element.querySelector('app-game-location-card')).toBeNull();
+      expect(element.querySelectorAll('app-games-by-date-card')).toHaveLength(1);
+      const rows = Array.from(element.querySelectorAll('[data-testid^="game-row-"]')).map((row) =>
+        row.getAttribute('data-testid'),
+      );
+      expect(rows).toEqual([
+        'game-row-game-1',
+        'game-row-game-2',
+        'game-row-game-3',
+        'game-row-game-4',
+      ]);
+      expect(api.list_games).toHaveBeenCalledTimes(1);
+    });
+
+    it('turning it back on restores the venue groups', async () => {
+      const { element, component, fixture, settle } = render();
+      await settle();
+
+      component.on_group_by_venue_changed(false);
+      fixture.detectChanges();
+      component.on_group_by_venue_changed(true);
+      fixture.detectChanges();
+      await settle();
+
+      expect(element.querySelectorAll('app-game-location-card')).toHaveLength(2);
+      expect(element.querySelector('app-games-by-date-card')).toBeNull();
+    });
+
+    it('remembers the choice for the next visit', async () => {
+      const first = render();
+      await first.settle();
+      first.component.on_group_by_venue_changed(false);
+      first.fixture.detectChanges();
+      await first.settle();
+      TestBed.resetTestingModule();
+
+      const second = render();
+      await second.settle();
+
+      expect(second.element.querySelector('app-games-by-date-card')).not.toBeNull();
+      expect(second.element.querySelector('app-game-location-card')).toBeNull();
+    });
+  });
+
   describe('permissions', () => {
     it('shows a clear no-access state, and asks for no games, without games.read', async () => {
       const { by_testid, element, api, settle } = render({ permissions: NO_GAMES_PERMISSIONS });

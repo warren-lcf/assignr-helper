@@ -1,0 +1,39 @@
+<mat-card class="date-card" appearance="outlined" data-testid="games-by-date">
+  <hch-card-header
+    class="date-card__header"
+    icon="event"
+    [title]="t('Games by date')"
+    [subtitle]="games_label()"
+    [heading_level]="2"
+    title_id="games-by-date-heading"
+  ></hch-card-header>
+
+  <mat-card-content>
+    @for (date of dates(); track date.local_date; let date_index = $index) {
+      <section
+        class="date-card__date"
+        [attr.aria-labelledby]="date_heading_id(date_index)"
+        [attr.data-testid]="'games-by-date-' + date_index"
+      >
+        <h3 class="date-card__date-heading" [id]="date_heading_id(date_index)">
+          @if (date.local_date !== null) {
+            {{ date.local_date | hchUserDate: calendar_date_format }}
+          } @else {
+            {{ t('Date to be announced') }}
+          }
+        </h3>
+
+        <mat-list class="date-card__list" role="list">
+          @for (game of date.games; track game.game_id; let last = $last) {
+            <mat-list-item class="date-card__item" role="listitem">
+              <app-game-row [game]="game" [show_location]="true"></app-game-row>
+            </mat-list-item>
+            @if (!last) {
+              <mat-divider></mat-divider>
+            }
+          }
+        </mat-list>
+      </section>
+    }
+  </mat-card-content>
+</mat-card>
