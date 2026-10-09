@@ -8,6 +8,7 @@ import {
   scroll_to_last_row,
 } from './helpers/agenda_list';
 import { SEED_USER_EMAIL, sign_in_and_open } from './helpers/sign_in';
+import { type_in_one_burst } from './helpers/type_in_one_burst';
 
 /** The dev server compiles lazily, so a loaded machine needs more than the 5 s default. */
 const expect = base_expect.configure({ timeout: 20_000 });
@@ -481,9 +482,7 @@ test.describe('public quick link page', () => {
     await expect(page.getByTestId('public-count')).toHaveText('5 games');
     const before = api.requests.length;
 
-    await page.getByTestId('public-filter-bar').getByRole('textbox').pressSequentially('lions', {
-      delay: 40,
-    });
+    await type_in_one_burst(page.getByTestId('public-filter-bar').getByRole('textbox'), 'lions');
 
     await expect(page.getByTestId('public-count')).toHaveText('1 game');
     await expect(page.getByTestId('public-game-g1')).toBeVisible();
