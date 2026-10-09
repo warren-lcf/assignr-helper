@@ -13,7 +13,17 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Router } from '@angular/router';
 import { PageContainerComponent } from '@hch-shared-libraries/ui-kit/app';
-import { EmptyStateComponent, SkeletonLineComponent } from '@hch-shared-libraries/ui-kit/core';
+import {
+  EmptyStateComponent,
+  SkeletonLineComponent,
+  UserDateFormat,
+  UserDatePipe,
+} from '@hch-shared-libraries/ui-kit/core';
+import {
+  GroupedAgendaListComponent,
+  IAgendaGroupLevel,
+  IAgendaItemNoun,
+} from '@hch-shared-libraries/ui-kit/data/grouped_agenda_list';
 import { PermissionKey } from '../../../../core/services/session/permission_key.enum';
 import { SessionService } from '../../../../core/services/session/session.service';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
@@ -34,14 +44,18 @@ import {
 import { count_games } from '../../utils/count_games';
 import { derive_facet_options } from '../../utils/derive_facet_options';
 import { flatten_games_by_date } from '../../utils/flatten_games_by_date';
+import { flatten_games_in_order } from '../../utils/flatten_games_in_order';
+import { format_agenda_date_heading } from '../../utils/format_agenda_date_heading';
 import { format_count } from '../../utils/format_count';
 import { format_games_label } from '../../utils/format_games_label';
 import { read_group_by_venue, write_group_by_venue } from '../../utils/group_by_venue_storage';
 import { read_last_scope, write_last_scope } from '../../utils/last_scope_storage';
+import { format_location_label } from '../../utils/format_location_label';
+import { get_agenda_date_key } from '../../utils/get_agenda_date_key';
 import { map_games_api_error } from '../../utils/map_games_api_error';
-import { GameLocationCardComponent } from '../game_location_card/game_location_card.component';
-import { GamesByDateCardComponent } from '../games_by_date_card/games_by_date_card.component';
+import { GameRowComponent } from '../game_row/game_row.component';
 import { GamesFiltersComponent } from '../games_filters/games_filters.component';
+import { IGameView } from '../../models/game_view.model';
 
 /** How many location cards of skeleton lines stand in while the first load runs. */
 const SKELETON_LOCATION_COUNT = 2;
@@ -51,9 +65,10 @@ const CONNECTIONS_URL = '/connections';
 
 /**
  * The tenant's Games screen: upcoming games from our own copy of the
- * assignors' data, grouped by location, then date, then time, with a scope
- * switch, search and filters that all run on the server. Read-only. Needs
- * `games.read`; without it, the screen says so instead of breaking.
+ * assignors' data, shown in one ui-kit grouped agenda list: by location, then
+ * date, then time (or by date and time alone when "Group by venue" is off),
+ * with a scope switch, search and filters that all run on the server.
+ * Read-only. Needs `games.read`; without it, the screen says so instead of breaking.
  *
  * The facet selects (league, level, age group, location) are filled from a
  * request that carries the scope, search and toggles but none of the facet
@@ -71,8 +86,9 @@ const CONNECTIONS_URL = '/connections';
     EmptyStateComponent,
     SkeletonLineComponent,
     GamesFiltersComponent,
-    GameLocationCardComponent,
-    GamesByDateCardComponent,
+    GroupedAgendaListComponent,
+    GameRowComponent,
+    UserDatePipe,
   ],
   templateUrl: './games_page.component.html',
   styleUrl: './games_page.component.scss',
@@ -83,6 +99,7 @@ export class GamesPageComponent {
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly translation = inject(AppTranslationService);
+  private readonly user_date = new UserDatePipe();
 
   /** What the user has chosen; starts from the scope they last used in this browser. */
   public readonly filters = signal<IGamesFilters>({
@@ -148,10 +165,45 @@ export class GamesPageComponent {
    * how the loaded games are laid out, so nothing is requested again, and it is remembered per browser.
    */
   public readonly group_by_venue = signal(read_group_by_venue());
-  /** The games with no venue grouping: by date, then start time. Only worked out while that view is on. */
-  public readonly flat_dates = computed(() =>
-    this.group_by_venue() ? [] : flatten_games_by_date(this.result()?.locations ?? []),
-  );
+  /**
+   * Every loaded game as the flat list the agenda groups itself: in the server's order (location,
+   * then date, then time) when grouped by venue, otherwise by calendar date and then start time.
+   */
+  public readonly agenda_games = computed<IGameView[]>(() => {
+    const locations = this.result()?.locations ?? [];
+    return this.group_by_venue()
+      ? flatten_games_in_order(locations)
+      : flatten_games_by_date(locations).flatMap((date) => date.games);
+  });
+  /**
+   * How the agenda groups the games: location, then date, or the date alone without venue grouping.
+   * The labels read the translation signals, so a language switch re-labels the headers.
+   */
+  public readonly group_levels = computed<IAgendaGroupLevel<IGameView>[]>(() => {
+    const date_level: IAgendaGroupLevel<IGameView> = {
+      get_key: (game) => get_agenda_date_key(game.local_date),
+      get_label: (_key, game) =>
+        format_agenda_date_heading(game.local_date, (key) => this.t(key), this.user_date),
+    };
+    if (!this.group_by_venue()) return [date_level];
+    return [
+      {
+        get_key: (game) => game.location_group,
+        get_label: (_key, game) => format_location_label(game.location_group, (key) => this.t(key)),
+        icon: 'location_on',
+      },
+      date_level,
+    ];
+  });
+  /** What one row is called, for the group count chips ("3 games"). */
+  public readonly item_noun = computed<IAgendaItemNoun>(() => ({
+    one: this.t('game'),
+    other: this.t('games'),
+  }));
+  /** Groups the person has collapsed, by key path. Kept for this visit only, and cleared when the grouping changes. */
+  public readonly collapsed_key_paths = signal<readonly (readonly string[])[]>([]);
+  /** Kick-off is shown on the venue's own clock with its zone; without a known zone it is the viewer's. */
+  public readonly time_format = UserDateFormat.TIME_ONLY_WITH_ZONE;
   /** "12 games"; this element is the page's live region for result counts. */
   public readonly count_text = computed(() =>
     format_games_label(this.shown_count(), (key, params) => this.t(key, params)),
@@ -243,7 +295,16 @@ export class GamesPageComponent {
    */
   public on_group_by_venue_changed(group_by_venue: boolean): void {
     this.group_by_venue.set(group_by_venue);
+    // The collapsed paths belong to the other grouping's levels and would match nothing here.
+    this.collapsed_key_paths.set([]);
   }
+
+  /**
+   * Identifies a game so its row keeps its DOM when the same game arrives in a new result.
+   * @param game The game.
+   * @returns The game's id.
+   */
+  public readonly get_game_key = (game: IGameView): string => game.game_id;
 
   /**
    * Clears search, facets and toggles; the scope stays.

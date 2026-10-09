@@ -197,4 +197,16 @@ describe('GameRowComponent', () => {
 
     expect(by_testid('game-time-game-1')?.textContent?.trim()).toMatch(/^4:00\s?AM HST$/);
   });
+
+  it('leaves the time out when the list around it draws the time column', () => {
+    const { fixture, by_testid, element } = render(OPEN_GAME);
+    fixture.componentRef.setInput('show_time', false);
+    fixture.detectChanges();
+
+    expect(by_testid('game-time-game-1')).toBeNull();
+    expect(element.querySelector('.game-row__time')).toBeNull();
+    // Everything else on the row is still there.
+    expect(by_testid('game-title-game-1')?.textContent?.trim()).toBe('Lions vs Tigers');
+    expect(by_testid('game-slots-game-1')).not.toBeNull();
+  });
 });

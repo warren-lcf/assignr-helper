@@ -22,9 +22,16 @@ import {
   UserDateFormat,
   UserDatePipe,
 } from '@hch-shared-libraries/ui-kit/core';
+import {
+  GroupedAgendaListComponent,
+  IAgendaGroupLevel,
+  IAgendaItemNoun,
+} from '@hch-shared-libraries/ui-kit/data/grouped_agenda_list';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
 import { format_count } from '../../../connections/utils/format_count';
+import { format_agenda_date_heading } from '../../../games/utils/format_agenda_date_heading';
 import { format_games_label } from '../../../games/utils/format_games_label';
+import { get_agenda_date_key } from '../../../games/utils/get_agenda_date_key';
 import {
   AUTO_REFRESH_INTERVAL_MS,
   DEFAULT_RATE_LIMIT_PAUSE_MS,
@@ -33,6 +40,7 @@ import {
 } from '../../constants/public_quick_link.constant';
 import { DEFAULT_PUBLIC_FILTERS } from '../../constants/default_public_filters.constant';
 import { PublicLinkErrorKind } from '../../enums/public_link_error_kind.enum';
+import { IPublicAgendaRow } from '../../models/public_agenda_row.model';
 import { IPublicGamesFilters } from '../../models/public_games_filters.model';
 import { IPublicGamesQuery } from '../../models/public_games_query.model';
 import { IPublicGamesResult } from '../../models/public_games_result.model';
@@ -43,10 +51,12 @@ import { are_public_queries_equal } from '../../utils/are_public_queries_equal';
 import { build_public_games_query } from '../../utils/build_public_games_query';
 import { count_public_games } from '../../utils/count_public_games';
 import { derive_public_facet_options } from '../../utils/derive_public_facet_options';
+import { flatten_public_games } from '../../utils/flatten_public_games';
+import { format_public_location_label } from '../../utils/format_public_location_label';
 import { map_public_link_error } from '../../utils/map_public_link_error';
 import { unwrap_public_quick_link_error } from '../../utils/unwrap_public_quick_link_error';
 import { PublicGamesFiltersComponent } from '../public_games_filters/public_games_filters.component';
-import { PublicLocationCardComponent } from '../public_location_card/public_location_card.component';
+import { PublicGameRowComponent } from '../public_game_row/public_game_row.component';
 
 /** Name of the robots meta tag the page adds while it is open. */
 const ROBOTS_META_NAME = 'robots';
@@ -55,8 +65,8 @@ const ROBOTS_META_SELECTOR = `name='${ROBOTS_META_NAME}'`;
 /**
  * The public page behind a quick link: a live, read-only list of open games
  * for anyone holding the link, with no sign-in and no app chrome. Games are
- * grouped by location, then date, then time. Search and the level, league and
- * location filters run on the server.
+ * shown in one ui-kit grouped agenda list: by location, then date, then time.
+ * Search and the level, league and location filters run on the server.
  *
  * The page refreshes itself every minute while the tab is visible and pauses
  * while it is hidden (and for the length of a "too many requests" pause). It
@@ -76,7 +86,9 @@ const ROBOTS_META_SELECTOR = `name='${ROBOTS_META_NAME}'`;
     EmptyStateComponent,
     SkeletonLineComponent,
     PublicGamesFiltersComponent,
-    PublicLocationCardComponent,
+    GroupedAgendaListComponent,
+    PublicGameRowComponent,
+    UserDatePipe,
   ],
   templateUrl: './public_quick_link_page.component.html',
   styleUrl: './public_quick_link_page.component.scss',
@@ -160,6 +172,43 @@ export class PublicQuickLinkPageComponent {
   public readonly is_refreshing = computed(
     () => this.result() !== undefined && this.games.isLoading(),
   );
+
+  /** Every game as a row of the agenda list, in the server's order (location, date, time). */
+  public readonly agenda_rows = computed<IPublicAgendaRow[]>(() =>
+    flatten_public_games(this.result()?.locations ?? []),
+  );
+  /**
+   * How the agenda groups the rows: location, then date. The labels read the translation signals,
+   * so a language switch re-labels the headers.
+   */
+  public readonly group_levels: IAgendaGroupLevel<IPublicAgendaRow>[] = [
+    {
+      get_key: (row) => row.location_label,
+      get_label: (_key, row) =>
+        format_public_location_label(row.location_label, (key) => this.t(key)),
+      icon: 'location_on',
+    },
+    {
+      get_key: (row) => get_agenda_date_key(row.local_date),
+      get_label: (_key, row) =>
+        format_agenda_date_heading(row.local_date, (key) => this.t(key), this.user_date),
+    },
+  ];
+  /** What one row is called, for the group count chips ("3 games"). */
+  public readonly item_noun = computed<IAgendaItemNoun>(() => ({
+    one: this.t('game'),
+    other: this.t('games'),
+  }));
+  /** Groups the visitor has collapsed, by key path. Kept for this visit only. */
+  public readonly collapsed_key_paths = signal<readonly (readonly string[])[]>([]);
+  /** Kick-off is shown on the venue's own clock with its zone; without a known zone it is the visitor's. */
+  public readonly time_format = UserDateFormat.TIME_ONLY_WITH_ZONE;
+  /**
+   * Identifies a row so it keeps its DOM when the same game arrives in a new answer.
+   * @param row The row.
+   * @returns The game's id.
+   */
+  public readonly get_row_key = (row: IPublicAgendaRow): string => row.game.game_id;
 
   public readonly shown_count = computed(() => count_public_games(this.result()));
   /** "12 games"; this element is the page live region for the count. */

@@ -1,6 +1,13 @@
 import { Page, Route, expect as base_expect, test } from '@playwright/test';
 import { read_seed_users } from '../scripts/seed_auth_user.cjs';
-import { assert_layout_is_sound } from './helpers/layout_checks';
+import {
+  agenda_group,
+  agenda_header,
+  agenda_labels,
+  assert_agenda_layout_is_sound,
+  measure_header_offsets,
+  scroll_to_last_row,
+} from './helpers/agenda_list';
 
 const seed_user = read_seed_users()[0];
 
@@ -319,7 +326,7 @@ async function assert_settled_layout_is_sound(page: Page): Promise<void> {
   await page.evaluate(() => {
     for (const element of Array.from(document.querySelectorAll('*'))) element.scrollTop = 0;
   });
-  await assert_layout_is_sound(page);
+  await assert_agenda_layout_is_sound(page);
 }
 
 /** On a phone the facets and toggles sit in an expansion panel; open it. On wider screens they are always shown. */
@@ -369,24 +376,31 @@ test.describe('games page', () => {
     await open_games(page);
 
     await expect(page.getByTestId('games-count')).toHaveText('3 games');
-    const locations = page.locator('[data-testid^="games-location-"]');
-    await expect(locations).toHaveCount(3);
-    await expect(locations.nth(0)).toContainText('Lakeside Fields');
-    await expect(locations.nth(1)).toContainText('Riverside Park');
-    await expect(locations.nth(2)).toContainText('Location to be announced');
+    const list = page.getByTestId('games-list');
+    await expect(agenda_labels(list, 0)).toHaveText([
+      'Lakeside Fields',
+      'Riverside Park',
+      UNKNOWN_LOCATION,
+    ]);
 
-    const riverside = page.getByTestId('games-location-1');
-    await expect(riverside.getByRole('heading', { level: 3 })).toHaveText(['Saturday, Oct 10']);
-    await expect(page.getByTestId('games-date-1-0').getByRole('listitem')).toHaveCount(1);
+    const riverside = agenda_group(list, 'Riverside Park');
+    await expect(agenda_header(riverside)).toContainText('1 game');
+    await expect(agenda_labels(riverside, 1)).toHaveText(['Saturday, Oct 10']);
+    await expect(riverside.getByTestId('grouped-agenda-row')).toHaveCount(1);
     // 14:00 UTC is 9:00 AM on the venue's Chicago clock, whatever zone the viewer is in.
     await expect(page.getByTestId('game-time-g1')).toHaveText('9:00 AM CDT');
     await expect(page.getByTestId('game-title-g1')).toHaveText('Lions vs Tigers');
     await expect(page.getByTestId('game-slots-g1')).toContainText('1 open of 2 slots');
+    // The grouped list owns the time column; the row does not draw a second time.
+    await expect(riverside.locator('.agenda_row_time').getByTestId('game-time-g1')).toHaveCount(1);
+    await expect(page.getByTestId('game-time-g1')).toHaveCount(1);
 
     // Unknown date and no teams yet sit last and say so.
-    const unknown = page.getByTestId('games-location-2');
-    await expect(unknown.getByRole('heading', { level: 3 })).toHaveText(['Date to be announced']);
+    const unknown = agenda_group(list, UNKNOWN_LOCATION);
+    await expect(agenda_labels(unknown, 1)).toHaveText(['Date to be announced']);
     await expect(page.getByTestId('game-title-g6')).toHaveText('Teams to be announced');
+    // The venue is named by its group header, so the row does not repeat the location.
+    await expect(page.getByTestId('game-location-g1')).toHaveCount(0);
 
     // Open scope hides assigned games and cancelled ones; no fee appears anywhere.
     await expect(page.getByTestId('game-row-g2')).toHaveCount(0);
@@ -435,15 +449,21 @@ test.describe('games page', () => {
     const api = await install_api_mock(page);
     await open_games(page);
     await expect(page.getByTestId('games-count')).toHaveText('3 games');
-    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(3);
+    const list = page.getByTestId('games-list');
+    await expect(agenda_labels(list, 0)).toHaveText([
+      'Lakeside Fields',
+      'Riverside Park',
+      UNKNOWN_LOCATION,
+    ]);
     const switch_control = page.getByTestId('games-toggle-group-by-venue').getByRole('switch');
     await expect(switch_control).toBeChecked();
 
     await switch_control.click();
 
-    // One list, no venue headings; the Lakeside 9 AM game now comes before the Riverside 2 PM game.
-    await expect(page.getByTestId('games-by-date')).toBeVisible();
-    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(0);
+    // One list by date, no venue headings; the Lakeside 9 AM game now comes before the Riverside 2 PM game.
+    await expect(agenda_labels(list, 0)).toHaveText(['Saturday, Oct 10', 'Date to be announced']);
+    await expect(agenda_labels(list, 1)).toHaveCount(0);
+    await expect(list.getByRole('heading', { name: /Lakeside Fields/ })).toHaveCount(0);
     await expect(page.getByTestId('games-count')).toHaveText('3 games');
     await expect(page.locator('[data-testid^="game-row-"]')).toHaveText([
       /Wolves vs Bears/,
@@ -459,13 +479,159 @@ test.describe('games page', () => {
 
     // The choice is remembered across a reload.
     await page.reload();
-    await expect(page.getByTestId('games-by-date')).toBeVisible();
+    await expect(agenda_labels(list, 0)).toHaveText(['Saturday, Oct 10', 'Date to be announced']);
     await expect(switch_control).not.toBeChecked();
 
-    // Turning it back on restores the venue cards.
+    // Turning it back on restores the venue groups.
     await switch_control.click();
-    await expect(page.locator('[data-testid^="games-location-"]')).toHaveCount(3);
-    await expect(page.getByTestId('games-by-date')).toHaveCount(0);
+    await expect(agenda_labels(list, 0)).toHaveText([
+      'Lakeside Fields',
+      'Riverside Park',
+      UNKNOWN_LOCATION,
+    ]);
+  });
+
+  test('keeps the same date from several venues in one group when the venue grouping is off', async ({
+    page,
+  }) => {
+    await install_api_mock(page);
+    await open_games(page);
+    await choose_scope(page, 'All games');
+    await expect(page.getByTestId('games-count')).toHaveText('5 games');
+
+    await page.getByTestId('games-toggle-group-by-venue').getByRole('switch').click();
+
+    const list = page.getByTestId('games-list');
+    await expect(agenda_labels(list, 0)).toHaveText([
+      'Saturday, Oct 10',
+      'Sunday, Oct 11',
+      'Date to be announced',
+    ]);
+    // By date, then by start time, whichever venue a game is at: Saturday 9 AM, 2 PM, 4 PM, then Sunday 10 AM.
+    await expect(page.locator('[data-testid^="game-title-"]')).toHaveText([
+      'Wolves vs Bears',
+      'Lions vs Tigers',
+      'Hawks vs Owls',
+      'Eagles vs Falcons',
+      'Teams to be announced',
+    ]);
+    await assert_settled_layout_is_sound(page);
+  });
+
+  test('orders rows by location, then date, then start time', async ({ page }) => {
+    await install_api_mock(page);
+    await open_games(page);
+    await choose_scope(page, 'All games');
+    await expect(page.getByTestId('games-count')).toHaveText('5 games');
+
+    const list = page.getByTestId('games-list');
+    await expect(agenda_labels(list, 0)).toHaveText([
+      'Lakeside Fields',
+      'Riverside Park',
+      UNKNOWN_LOCATION,
+    ]);
+    await expect(agenda_labels(agenda_group(list, 'Lakeside Fields'), 1)).toHaveText([
+      'Saturday, Oct 10',
+      'Sunday, Oct 11',
+    ]);
+    await expect(agenda_labels(agenda_group(list, 'Riverside Park'), 1)).toHaveText([
+      'Saturday, Oct 10',
+    ]);
+    await expect(page.locator('[data-testid^="game-title-"]')).toHaveText([
+      'Wolves vs Bears',
+      'Eagles vs Falcons',
+      'Lions vs Tigers',
+      'Hawks vs Owls',
+      'Teams to be announced',
+    ]);
+    // Every group says how many games it holds.
+    await expect(agenda_header(agenda_group(list, 'Lakeside Fields'))).toContainText('2 games');
+    await expect(agenda_header(agenda_group(list, 'Riverside Park'))).toContainText('2 games');
+    await assert_settled_layout_is_sound(page);
+  });
+
+  test('collapses a group from its header and opens it again', async ({ page }) => {
+    await install_api_mock(page);
+    await open_games(page);
+    await expect(page.getByTestId('games-count')).toHaveText('3 games');
+
+    const list = page.getByTestId('games-list');
+    const header = agenda_header(agenda_group(list, 'Riverside Park'));
+    await expect(header).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('game-row-g1')).toBeVisible();
+
+    await header.click();
+
+    await expect(header).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('game-row-g1')).toHaveCount(0);
+    // The group still says how many games it holds, and the others are untouched.
+    await expect(header).toContainText('1 game');
+    await expect(page.getByTestId('game-row-g4')).toBeVisible();
+    await expect(page.getByTestId('games-count')).toHaveText('3 games');
+    await assert_settled_layout_is_sound(page);
+
+    await header.click();
+
+    await expect(header).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('game-row-g1')).toBeVisible();
+  });
+
+  test('moves between the group headers with the keyboard', async ({ page }) => {
+    await install_api_mock(page);
+    await open_games(page);
+    await expect(page.getByTestId('games-count')).toHaveText('3 games');
+
+    const headers = page.getByTestId('games-list').getByTestId('grouped-agenda-header');
+    await expect(headers).toHaveCount(6);
+    await headers.first().focus();
+
+    await page.keyboard.press('ArrowDown');
+    await expect(headers.nth(1)).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(headers.last()).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(headers.nth(4)).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(headers.first()).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(headers.first()).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('keeps the location and date headers pinned while the games scroll past', async ({
+    page,
+  }) => {
+    const many = Array.from({ length: 24 }, (_, index) =>
+      make_game(`m${index}`, {
+        start_at: SATURDAY + 6 * HOUR_MS + index * 10 * 60_000,
+        home_team: `Home ${index}`,
+        away_team: `Away ${index}`,
+      }),
+    );
+    await install_api_mock(page, { games: many });
+    await open_games(page);
+    await expect(page.getByTestId('games-count')).toHaveText('24 games');
+
+    const list = page.getByTestId('games-list');
+    const location = agenda_group(list, 'Riverside Park');
+    const location_header = agenda_header(location);
+    const date_header = agenda_header(location.locator('section[data-agenda-level="1"]'));
+    await scroll_to_last_row(list.getByTestId('grouped-agenda-row'));
+
+    const [location_top, date_top] = await measure_header_offsets(page, [
+      location_header,
+      date_header,
+    ]);
+    const location_height = await location_header.evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    // Both headers stay at the top of the scrolling area, the date header directly under the location header.
+    expect(Math.abs(location_top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(date_top - location_height)).toBeLessThanOrEqual(1);
+    await expect(location_header).toBeInViewport();
+    await expect(date_header).toBeInViewport();
+    // Pinned headers sit over the rows that scroll beneath them without overlapping any control.
+    await wait_for_animations(page);
+    await assert_agenda_layout_is_sound(page);
   });
 
   test('switches scope between open, my and all games', async ({ page }) => {

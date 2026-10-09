@@ -1,12 +1,22 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { USER_DATE_TIMEZONE } from '@hch-shared-libraries/ui-kit/core';
+import { TRANSLATION_PROVIDER } from '@hch-shared-libraries/ui-kit/core/translation';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { AppTranslationService } from '../../../../core/services/translation/app_translation.service';
+import {
+  agenda_header_buttons,
+  read_agenda_groups,
+  read_agenda_labels,
+} from '../../../games/mocks/agenda_list_dom.mock';
+import { make_translation_provider_double } from '../../../games/mocks/translation_provider.mock';
 import { PublicLinkErrorKind } from '../../enums/public_link_error_kind.enum';
 import {
   EMPTY_PUBLIC_GAMES_RESULT,
   PUBLIC_FAKE_TOKEN,
   PUBLIC_GAMES_RESULT,
+  SATURDAY,
+  make_public_game,
   make_public_games_result,
 } from '../../mocks/public_games_result.mock';
 import { make_translation_service_double } from '../../mocks/translation_service.mock';
@@ -39,13 +49,15 @@ function set_visibility(state: 'hidden' | 'visible'): void {
   document.dispatchEvent(new Event('visibilitychange'));
 }
 
-function render(list_games: ListGames = () => of(PUBLIC_GAMES_RESULT)) {
+function render(list_games: ListGames = () => of(PUBLIC_GAMES_RESULT), viewer_zone?: string) {
   const api = { list_games: vi.fn(list_games) };
   TestBed.configureTestingModule({
     imports: [PublicQuickLinkPageComponent],
     providers: [
       { provide: PublicQuickLinkApiService, useValue: api },
       { provide: AppTranslationService, useValue: make_translation_service_double() },
+      { provide: TRANSLATION_PROVIDER, useValue: make_translation_provider_double() },
+      ...(viewer_zone ? [{ provide: USER_DATE_TIMEZONE, useValue: () => viewer_zone }] : []),
     ],
   });
   const fixture = TestBed.createComponent(PublicQuickLinkPageComponent);
@@ -94,7 +106,7 @@ describe('PublicQuickLinkPageComponent', () => {
 
       expect(by_testid('public-loading')?.getAttribute('aria-busy')).toBe('true');
       expect(element.querySelectorAll('hch-skeleton-line').length).toBeGreaterThan(0);
-      expect(element.querySelector('app-public-location-card')).toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).toBeNull();
     });
 
     it('asks for the games of the link with no query to begin with', async () => {
@@ -118,14 +130,139 @@ describe('PublicQuickLinkPageComponent', () => {
       const { element, settle } = render();
       await settle();
 
-      const cards = element.querySelectorAll('app-public-location-card');
-      expect(cards).toHaveLength(2);
-      expect(cards[0].textContent).toContain('Riverside Park');
-      expect(cards[1].textContent).toContain('Location to be announced');
-      expect(cards[0].querySelectorAll('section')).toHaveLength(2);
-      expect(cards[0].querySelectorAll('[data-testid^="public-game-title-"]')).toHaveLength(3);
-      expect(cards[1].textContent).toContain('Date to be announced');
-      expect(cards[1].textContent).toContain('Teams to be announced');
+      expect(element.querySelectorAll('hch-grouped-agenda-list')).toHaveLength(1);
+      expect(read_agenda_groups(element).map((group) => [group.level, group.label])).toEqual([
+        [0, 'Riverside Park'],
+        [1, 'Saturday, Oct 10'],
+        [1, 'Sunday, Oct 11'],
+        [0, 'Location to be announced'],
+        [1, 'Date to be announced'],
+      ]);
+      const riverside = element.querySelector('section[data-agenda-key="Riverside Park"]');
+      expect(riverside?.querySelectorAll('[data-testid^="public-game-title-"]')).toHaveLength(3);
+      const unknown = element.querySelector('section[data-agenda-key="Location to be announced"]');
+      expect(unknown?.textContent).toContain('Teams to be announced');
+      expect(
+        Array.from(element.querySelectorAll('[data-testid^="public-game-title-"]')).map((title) =>
+          title.textContent?.trim(),
+        ),
+      ).toEqual(['Lions vs Tigers', 'Hawks vs Owls', 'Rams vs Bulls', 'Teams to be announced']);
+    });
+
+    it('counts the games in every group, in the singular for one', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      expect(read_agenda_groups(element).map((group) => group.count)).toEqual([
+        '3 games',
+        '2 games',
+        '1 game',
+        '1 game',
+        '1 game',
+      ]);
+    });
+
+    it('groups a game under the location the server put it in, even when the game names none', async () => {
+      const { element, settle } = render(() =>
+        of(
+          make_public_games_result({
+            locations: [
+              {
+                location_label: 'Pitch 1',
+                dates: [
+                  {
+                    local_date: SATURDAY,
+                    games: [make_public_game({ game_id: 'no-group', location_group: null })],
+                  },
+                ],
+              },
+            ],
+            total: 1,
+          }),
+        ),
+      );
+      await settle();
+
+      expect(read_agenda_labels(element, 0)).toEqual(['Pitch 1']);
+    });
+
+    it('names the weekday of the calendar date even for a visitor west of UTC', async () => {
+      const { element, settle } = render(() => of(PUBLIC_GAMES_RESULT), 'Pacific/Honolulu');
+      await settle();
+
+      // A date stored as UTC midnight would read a day early (Friday) if it were formatted in the visitor zone.
+      expect(read_agenda_labels(element, 1).slice(0, 2)).toEqual([
+        'Saturday, Oct 10',
+        'Sunday, Oct 11',
+      ]);
+    });
+
+    it('shows kick-off in the list time column on the venue clock, whatever zone the visitor is in', async () => {
+      const { element, by_testid, settle } = render(
+        () => of(PUBLIC_GAMES_RESULT),
+        'Pacific/Honolulu',
+      );
+      await settle();
+
+      const time = by_testid('public-game-time-g1');
+      expect(time?.textContent?.trim()).toMatch(/^9:00\s?AM CDT$/);
+      expect(time?.closest('.agenda_row_time')).not.toBeNull();
+      expect(element.querySelectorAll('[data-testid="public-game-time-g1"]')).toHaveLength(1);
+      // A game without a known zone shows the visitor's own clock, still naming the zone.
+      expect(by_testid('public-game-time-g4')?.textContent?.trim()).toMatch(
+        /^\d{1,2}:\d{2}\s?[AP]M/,
+      );
+    });
+
+    it('draws rows as plain read-only items, not buttons', async () => {
+      const { element, settle } = render();
+      await settle();
+
+      const rows = element.querySelectorAll('[data-testid="grouped-agenda-row"]');
+      expect(rows).toHaveLength(4);
+      for (const row of Array.from(rows)) expect(row.tagName).not.toBe('BUTTON');
+      expect(element.querySelector('.agenda_row_chevron')).toBeNull();
+    });
+
+    it('collapses a group from its header and opens it again, keeping the count', async () => {
+      const { element, fixture, settle } = render();
+      await settle();
+      const riverside = () => read_agenda_groups(element)[0];
+      expect(riverside()).toEqual(expect.objectContaining({ expanded: true, count: '3 games' }));
+      expect(element.querySelector('[data-testid="public-game-g1"]')).not.toBeNull();
+
+      agenda_header_buttons(element)[0].click();
+      fixture.detectChanges();
+
+      expect(riverside()).toEqual(expect.objectContaining({ expanded: false, count: '3 games' }));
+      expect(element.querySelector('[data-testid="public-game-g1"]')).toBeNull();
+      expect(element.querySelector('[data-testid="public-game-g4"]')).not.toBeNull();
+
+      agenda_header_buttons(element)[0].click();
+      fixture.detectChanges();
+
+      expect(riverside().expanded).toBe(true);
+      expect(element.querySelector('[data-testid="public-game-g1"]')).not.toBeNull();
+    });
+
+    it('moves between group headers with the arrow keys, Home and End', async () => {
+      const { element, fixture, settle } = render();
+      await settle();
+      const headers = agenda_header_buttons(element);
+      const press = (from: HTMLElement, key: string) => {
+        from.focus();
+        from.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        fixture.detectChanges();
+      };
+
+      press(headers[0], 'ArrowDown');
+      expect(document.activeElement).toBe(headers[1]);
+      press(headers[1], 'End');
+      expect(document.activeElement).toBe(headers[headers.length - 1]);
+      press(headers[headers.length - 1], 'ArrowUp');
+      expect(document.activeElement).toBe(headers[headers.length - 2]);
+      press(headers[headers.length - 2], 'Home');
+      expect(document.activeElement).toBe(headers[0]);
     });
 
     it('announces the count politely', async () => {
@@ -215,7 +352,7 @@ describe('PublicQuickLinkPageComponent', () => {
       await new Promise((resolve) => setTimeout(resolve));
       fixture.detectChanges();
 
-      expect(element.querySelectorAll('app-public-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
       expect(by_testid('public-list')?.getAttribute('aria-busy')).toBe('true');
     });
 
@@ -234,7 +371,7 @@ describe('PublicQuickLinkPageComponent', () => {
       await settle();
 
       expect(queries()[queries().length - 1]).toEqual({});
-      expect(element.querySelectorAll('app-public-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
     });
 
     it('says there are no games right now when the link has none', async () => {
@@ -273,7 +410,7 @@ describe('PublicQuickLinkPageComponent', () => {
       await settle();
 
       expect(api.list_games).toHaveBeenCalledTimes(2);
-      expect(element.querySelectorAll('app-public-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
     });
 
     it('shows a retry for a network failure', async () => {
@@ -287,7 +424,7 @@ describe('PublicQuickLinkPageComponent', () => {
       by_testid('public-retry')?.click();
       await settle();
 
-      expect(element.querySelectorAll('app-public-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
     });
 
     it('treats an error that is not ours as a network failure', async () => {
@@ -307,7 +444,7 @@ describe('PublicQuickLinkPageComponent', () => {
       component.refresh();
       await settle();
 
-      expect(element.querySelectorAll('app-public-location-card')).toHaveLength(2);
+      expect(read_agenda_labels(element, 0)).toHaveLength(2);
       expect(by_testid('public-stale-notice')?.textContent).toContain('Showing the last update.');
       expect(by_testid('public-stale-retry')).not.toBeNull();
     });
@@ -323,7 +460,7 @@ describe('PublicQuickLinkPageComponent', () => {
       await settle();
 
       expect(by_testid('public-inactive')).not.toBeNull();
-      expect(element.querySelector('app-public-location-card')).toBeNull();
+      expect(element.querySelector('hch-grouped-agenda-list')).toBeNull();
     });
 
     it('logs only the kind, status and code, never the token', async () => {

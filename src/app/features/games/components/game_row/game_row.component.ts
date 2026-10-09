@@ -15,7 +15,7 @@ import { format_location_label } from '../../utils/format_location_label';
 import { format_open_slots } from '../../utils/format_open_slots';
 
 /**
- * One game in the agenda: kick-off time, the teams, venue and organization,
+ * The content of one game in the agenda: kick-off time (unless the list draws it), the teams, venue and organization,
  * level/league/age-group/type tags, how many slots are still open, whether the
  * viewer is assigned (with their position) and whether the game is cancelled.
  * Every status is an icon plus text, never colour alone. Read-only: it emits nothing.
@@ -38,6 +38,11 @@ export class GameRowComponent {
    * row names where it is played.
    */
   public readonly show_location = input(false);
+  /**
+   * False when the list the row sits in draws the kick-off time in a column of its own (the grouped
+   * agenda list does), so the row does not repeat it.
+   */
+  public readonly show_time = input(true);
 
   /**
    * Kick-off is shown on the venue's own clock with its zone ("10:00 AM CDT"); when the zone is not

@@ -12,3 +12,9 @@ export const DATE_HEADING_FORMAT = UserDateFormat.WEEKDAY_DATE;
  * viewer's zone; any other zone could name the day before.
  */
 export const DATE_HEADING_TIME_ZONE = 'UTC';
+
+/**
+ * The group key of games without a calendar date. Real keys are the date's UTC-midnight milliseconds
+ * written as digits, so this word can never collide with one.
+ */
+export const UNKNOWN_DATE_GROUP_KEY = 'unknown';
