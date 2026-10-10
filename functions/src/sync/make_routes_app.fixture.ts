@@ -13,6 +13,11 @@ import { TenantStatus } from '../auth/enums/tenant_status.enum.js';
 import { TenantType } from '../auth/enums/tenant_type.enum.js';
 import { InMemoryMembershipResolver } from '../auth/in_memory_membership_resolver.js';
 import { StaticRoleStore } from '../auth/static_role_store.js';
+import { CalendarFeedAdminService } from '../calendar_feed/calendar_feed_admin.service.js';
+import { create_calendar_feed_router } from '../calendar_feed/calendar_feed.routes.js';
+import { PublicCalendarFeedService } from '../calendar_feed/public_calendar_feed.service.js';
+import { create_public_calendar_feed_router } from '../calendar_feed/public_calendar_feed.routes.js';
+import { InMemoryCalendarFeedStore } from '../calendar_feed/stores/in_memory_calendar_feed_store.js';
 import { ConnectionAdminService } from '../connections/connection_admin.service.js';
 import { create_connections_router } from '../connections/connections.routes.js';
 import { create_connections_admin_router } from '../connections/connections_admin.routes.js';
@@ -84,6 +89,10 @@ export interface IRoutesApp {
   verifier: { verify: IAccountVerifier['verify'] };
   audit: IInMemoryAuditLog;
   quick_links: InMemoryQuickLinkStore;
+  /** The store behind the "My Schedule" calendar feed. */
+  calendar_feeds: InMemoryCalendarFeedStore;
+  /** The service behind the calendar feed owner routes. */
+  calendar_feed_service: CalendarFeedAdminService;
   match_reports: InMemoryMatchReportStore;
   /** The service behind the match report routes, for specs that build their own stores around it. */
   match_report_service: MatchReportService;
@@ -108,6 +117,12 @@ export interface IRoutesAppOptions {
   failure_limiter?: IRateLimiter;
   /** Proxies trusted to report the caller's address; unset trusts none. */
   trust_proxy_hops?: number;
+  /** Limits every public calendar feed request; defaults like `request_limiter`. */
+  calendar_request_limiter?: IRateLimiter;
+  /** Limits public calendar feed requests whose token opens nothing; defaults like `request_limiter`. */
+  calendar_failure_limiter?: IRateLimiter;
+  /** Replaces the store the calendar feed routes use, for example to make recording a fetch fail. */
+  calendar_feeds?: InMemoryCalendarFeedStore;
   /** Limits every public unsubscribe request; defaults like `request_limiter`. */
   unsubscribe_request_limiter?: IRateLimiter;
   /** Limits public unsubscribe requests whose token opens nothing; defaults like `request_limiter`. */
@@ -177,6 +192,20 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
     quick_links,
     games: harness.games,
     venues: harness.venues,
+    now: harness.clock,
+  });
+  const calendar_feeds =
+    options.calendar_feeds ?? new InMemoryCalendarFeedStore({ now: harness.clock });
+  const calendar_feed_service = new CalendarFeedAdminService({
+    feeds: calendar_feeds,
+    audit: create_audit_log_service({ store: audit }),
+  });
+  const public_calendar_feed_service = new PublicCalendarFeedService({
+    feeds: calendar_feeds,
+    games: harness.games,
+    venues: harness.venues,
+    organizations: harness.organizations,
+    public_app_origin: ROUTES_APP_ORIGIN,
     now: harness.clock,
   });
   const match_reports = new InMemoryMatchReportStore();
@@ -304,6 +333,14 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
       );
       target.use(
         '/api',
+        create_public_calendar_feed_router({
+          service: public_calendar_feed_service,
+          request_limiter: options.calendar_request_limiter ?? generous_limiter(),
+          failure_limiter: options.calendar_failure_limiter ?? generous_limiter(),
+        }),
+      );
+      target.use(
+        '/api',
         create_public_unsubscribe_router({
           service: unsubscribe,
           request_limiter: options.unsubscribe_request_limiter ?? generous_limiter(),
@@ -357,6 +394,10 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
         create_match_reports_router({ report_service: match_report_service, permission_service }),
       );
       target.use('/api', create_quick_links_router({ quick_link_service, permission_service }));
+      target.use(
+        '/api',
+        create_calendar_feed_router({ feed_service: calendar_feed_service, permission_service }),
+      );
       target.use('/api', create_contacts_router({ contact_service, permission_service }));
       target.use(
         '/api',
@@ -394,6 +435,8 @@ export function make_routes_app(options: IRoutesAppOptions = {}): IRoutesApp {
     verifier,
     audit,
     quick_links,
+    calendar_feeds,
+    calendar_feed_service,
     match_reports,
     match_report_service,
     contacts,

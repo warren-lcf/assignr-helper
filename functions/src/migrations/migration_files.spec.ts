@@ -62,3 +62,36 @@ describe('0005_email_deliveries.sql', () => {
     expect(suppressions).toContain('PRIMARY KEY (tenant_id, email_hash)');
   });
 });
+
+describe('0006_calendar_feeds.sql', () => {
+  const statements = split_statements(
+    readFileSync(`${MIGRATIONS_DIR}0006_calendar_feeds.sql`, 'utf8'),
+  );
+  const table =
+    statements.find((s) => s.includes('CREATE TABLE IF NOT EXISTS calendar_feeds')) ?? '';
+  const index = statements.find((s) => s.includes('calendar_feeds_by_token_hash')) ?? '';
+
+  it('holds one feed per tenant', () => {
+    expect(table).toContain('tenant_id STRING(64) NOT NULL');
+    expect(table).toContain('PRIMARY KEY (tenant_id)');
+  });
+
+  it('stores the token hash and counters, never a token', () => {
+    expect(table).toContain('token_hash STRING(64) NOT NULL');
+    expect(table).toContain('rotation_count INT64 NOT NULL');
+    expect(table).toContain('fetch_count INT64 NOT NULL');
+    expect(table).toContain('last_fetched_at INT64,');
+    expect(table).not.toMatch(/\btoken\s+STRING/);
+  });
+
+  it('carries the audit columns', () => {
+    for (const column of ['created_at', 'created_by', 'updated_at', 'updated_by']) {
+      expect(table).toContain(column);
+    }
+  });
+
+  it('finds a feed by its token hash through a unique index', () => {
+    expect(index).toMatch(/^CREATE UNIQUE INDEX IF NOT EXISTS calendar_feeds_by_token_hash/);
+    expect(index).toContain('ON calendar_feeds (token_hash)');
+  });
+});

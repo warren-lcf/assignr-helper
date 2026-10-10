@@ -68,6 +68,42 @@ describe('create_production_app', () => {
     expect((await request(app).post('/api/quick_links/l1/revoke')).status).toBe(401);
   });
 
+  it('protects every calendar feed management route', async () => {
+    const app = create_production_app(ENV);
+
+    expect((await request(app).get('/api/my_schedule/feed')).status).toBe(401);
+    expect((await request(app).post('/api/my_schedule/feed')).status).toBe(401);
+    expect((await request(app).post('/api/my_schedule/feed/rotate')).status).toBe(401);
+    expect((await request(app).delete('/api/my_schedule/feed')).status).toBe(401);
+  });
+
+  it('serves the public calendar feed without sign-in, refusing a garbage token with the uniform 404 and the public headers', async () => {
+    const app = create_production_app(ENV);
+
+    for (const segment of ['not-a-real-token.ics', 'not-a-real-token', `${'A'.repeat(50)}.ics`]) {
+      const response = await request(app).get(`/api/public/cal/${segment}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ code: 'NOT_FOUND', message: 'This link is not available' });
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.headers['referrer-policy']).toBe('no-referrer');
+      expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
+    }
+  });
+
+  it('rate limits repeated bad calendar feed tokens from one client', async () => {
+    const app = create_production_app(ENV);
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 22; i++) {
+      statuses.push((await request(app).get('/api/public/cal/garbage.ics')).status);
+    }
+
+    expect(statuses.slice(0, 20)).toEqual(Array(20).fill(404));
+    expect(statuses.slice(20)).toEqual([429, 429]);
+  });
+
   it('protects every match report route', async () => {
     const app = create_production_app(ENV);
 

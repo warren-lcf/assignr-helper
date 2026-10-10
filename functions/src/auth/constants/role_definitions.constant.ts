@@ -14,6 +14,7 @@ const OWNER_PERMISSIONS: readonly PermissionKey[] = [
   PermissionKey.SYNC_RUN,
   PermissionKey.EMAIL_SEND,
   PermissionKey.QUICK_LINKS_MANAGE,
+  PermissionKey.CALENDAR_FEED_MANAGE,
 ];
 
 /**

@@ -1,0 +1,77 @@
+<hch-page-container
+  [title]="t('My Schedule')"
+  icon="event"
+  [subtitle]="t('Your upcoming assigned games')"
+>
+  @if (is_loading()) {
+    <div
+      class="my-schedule__stack"
+      role="status"
+      aria-busy="true"
+      [attr.aria-label]="t('Loading your schedule')"
+      data-testid="my-schedule-loading"
+    >
+      @for (slot of skeleton_slots; track slot) {
+        <hch-skeleton-line height="96px"></hch-skeleton-line>
+      }
+    </div>
+  } @else if (session_failed()) {
+    <hch-empty-state
+      icon="error"
+      [headline]="t('Your schedule could not be loaded')"
+      [description]="t('Check your connection and try again.')"
+      [action_label]="t('Try again')"
+      action_testid="my-schedule-retry"
+      (action_clicked)="retry()"
+    ></hch-empty-state>
+  } @else if (has_no_access()) {
+    <hch-empty-state
+      icon="lock"
+      [headline]="t('You do not have access to your schedule')"
+      [description]="t('Ask a tenant owner to give your role access to games.')"
+      data-testid="my-schedule-no-access"
+    ></hch-empty-state>
+  } @else {
+    <div class="my-schedule__stack">
+      @if (load_error(); as error) {
+        <hch-empty-state
+          icon="error"
+          [headline]="error.headline"
+          [description]="error.description"
+          [action_label]="can_retry() ? t('Try again') : undefined"
+          action_testid="my-schedule-retry"
+          (action_clicked)="retry()"
+        ></hch-empty-state>
+      } @else if (agenda_games().length === 0) {
+        <hch-empty-state
+          icon="event_busy"
+          [headline]="t('No upcoming games')"
+          [description]="
+            t(
+              'You are not assigned to any upcoming games. Find games to claim, or sync a connection to bring in your latest assignments.'
+            )
+          "
+          [action_label]="t('Go to Games')"
+          action_testid="my-schedule-empty-games"
+          (action_clicked)="go_to_games()"
+        ></hch-empty-state>
+      } @else {
+        <app-next-up-card [game]="next_game()" [now]="now()"></app-next-up-card>
+
+        <section class="my-schedule__agenda" data-testid="my-schedule-agenda">
+          <p
+            class="my-schedule__count"
+            role="status"
+            aria-live="polite"
+            data-testid="my-schedule-count"
+          >
+            {{ count_text() }}
+          </p>
+          <app-schedule-agenda [games]="agenda_games()"></app-schedule-agenda>
+        </section>
+      }
+
+      <app-calendar-link-card></app-calendar-link-card>
+    </div>
+  }
+</hch-page-container>

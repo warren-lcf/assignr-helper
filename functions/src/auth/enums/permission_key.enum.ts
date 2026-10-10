@@ -7,5 +7,6 @@ export enum PermissionKey {
   SYNC_RUN = 'sync.run',
   EMAIL_SEND = 'email.send',
   QUICK_LINKS_MANAGE = 'quick_links.manage',
+  CALENDAR_FEED_MANAGE = 'calendar_feed.manage',
   PLATFORM_MANAGE = 'platform.manage',
 }

@@ -1,0 +1,63 @@
+<mat-card appearance="outlined" class="next-up" data-testid="next-up-card">
+  <hch-card-header [title]="t('Next up')" icon="schedule" [heading_level]="2"></hch-card-header>
+
+  <mat-card-content>
+    @if (game(); as game) {
+      <p
+        class="next-up__note"
+        [class.next-up__note--now]="is_in_progress()"
+        data-testid="next-up-note"
+      >
+        <mat-icon aria-hidden="true">{{
+          is_in_progress() ? 'play_circle' : 'hourglass_top'
+        }}</mat-icon>
+        <span>{{ note() }}</span>
+      </p>
+
+      <p class="next-up__title" data-testid="next-up-title">{{ title() }}</p>
+
+      <p class="next-up__when">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        <span class="visually-hidden">{{ t('Date') }}:</span>
+        <span data-testid="next-up-date">{{ date_text() }}</span>
+        <span aria-hidden="true">&middot;</span>
+        <span class="visually-hidden">{{ t('Kick-off') }}:</span>
+        <span class="next-up__time" data-testid="next-up-time">{{
+          game.start_at | hchUserDate: time_format : game.time_zone
+        }}</span>
+      </p>
+
+      @if (game.venue_name; as venue_name) {
+        <p class="next-up__meta" data-testid="next-up-venue">
+          <mat-icon aria-hidden="true">place</mat-icon>
+          <span class="visually-hidden">{{ t('Venue') }}:</span>
+          <span>{{ venue_name }}</span>
+        </p>
+      }
+      @if (location_text(); as location_text) {
+        <p class="next-up__meta" data-testid="next-up-location">
+          <mat-icon aria-hidden="true">map</mat-icon>
+          <span class="visually-hidden">{{ t('Location') }}:</span>
+          <span>{{ location_text }}</span>
+        </p>
+      }
+
+      <div class="next-up__chips" role="group" [attr.aria-label]="t('Game details')">
+        <hch-status-chip
+          [label]="position_label()"
+          [tone]="tone.SUCCESS"
+          icon="person"
+          data-testid="next-up-position"
+        ></hch-status-chip>
+        @for (tag of tags(); track tag) {
+          <hch-status-chip [label]="tag" [tone]="tone.NEUTRAL" compact></hch-status-chip>
+        }
+      </div>
+    } @else {
+      <p class="next-up__empty" data-testid="next-up-empty">
+        <mat-icon aria-hidden="true">event_busy</mat-icon>
+        <span>{{ t('Nothing coming up. Your next assigned game will appear here.') }}</span>
+      </p>
+    }
+  </mat-card-content>
+</mat-card>

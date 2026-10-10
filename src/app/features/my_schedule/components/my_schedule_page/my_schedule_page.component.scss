@@ -1,0 +1,18 @@
+:host {
+  display: block;
+}
+
+.my-schedule__stack,
+.my-schedule__agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.my-schedule__count {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+  font-variant-numeric: tabular-nums;
+}

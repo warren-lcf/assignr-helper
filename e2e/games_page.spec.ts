@@ -8,6 +8,7 @@ import {
   measure_header_offsets,
   scroll_to_last_row,
 } from './helpers/agenda_list';
+import { type_in_one_burst } from './helpers/type_in_one_burst';
 
 const seed_user = read_seed_users()[0];
 
@@ -415,9 +416,7 @@ test.describe('games page', () => {
     await expect(page.getByTestId('games-count')).toHaveText('3 games');
     const before = api.game_requests.length;
 
-    await page.getByTestId('games-filter-bar').getByRole('textbox').pressSequentially('lions', {
-      delay: 40,
-    });
+    await type_in_one_burst(page.getByTestId('games-filter-bar').getByRole('textbox'), 'lions');
 
     await expect(page.getByTestId('games-count')).toHaveText('1 game');
     await expect(page.getByTestId('game-row-g1')).toBeVisible();
