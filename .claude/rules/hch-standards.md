@@ -79,7 +79,7 @@ You are a principal Angular & TypeScript engineer. Produce modern, modular, test
 - **Prove each new test is load-bearing:** break the code under test, confirm *exactly* the predicted tests go red and the rest stay green, then restore. Independent guarantees get independent reverts — not one combined revert covering several at once.
 - Typecheck covers `*.spec.ts` (Vitest strips types without checking). When an interface changes, grep every call site, specs included.
 - Run tests only through project scripts (`npm run test`, `ng test <project>`), never bare `npx vitest run` / unscoped `npx playwright test`.
-- Skip E2E mid-task; run the full Playwright suite (8-device matrix + 4 layout checks) once work is done and **always before `git push`**.
+- Skip E2E mid-task. When work is done and before `git push`, run only the targeted Playwright specs for the files you changed (8-device matrix + 4 layout checks, scoped to those specs) — **never the full suite unless the user explicitly asks for it**.
 - Admins switch `effective_role` / View-As-Tenant in the header; the lower assumed role is enforced server-side, clearly indicated, and logged.
 - Deploys only via root `cloudbuild.yaml` on merge to `main`: `npm ci` → lint → typecheck → Vitest → build → Playwright on emulators → migrations → `--only` deploy. Any failure halts.
 
